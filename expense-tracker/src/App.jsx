@@ -3,6 +3,8 @@ import { useExpenses } from './hooks/useExpenses';
 import { useFixedExpenses } from './hooks/useFixedExpenses';
 import { fmtCOP, MONTH_NAMES } from './utils/format';
 import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import AnnualDashboard from './components/AnnualDashboard';
 import ExpenseModal from './components/ExpenseModal';
 import ExpenseTable from './components/ExpenseTable';
 import SavingModal from './components/SavingModal';
@@ -34,6 +36,7 @@ export default function App() {
 
   const [viewYear,  setViewYear]  = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [annualYear, setAnnualYear] = useState(now.getFullYear());
   const [modalOpen, setModalOpen] = useState(false);
   const [editing,   setEditing]   = useState(null);
   const [defaultCostType, setDefaultCostType] = useState('');
@@ -43,7 +46,7 @@ export default function App() {
   const [toastTimer, setToastTimer] = useState(null);
   const [activeTab,  setActiveTab] = useState('expenses'); // 'expenses' | 'savings' | 'charts'
   const [darkMode,   setDarkMode]  = useState(() => localStorage.getItem('theme') === 'dark');
-  const [view,       setView]      = useState('main'); // 'main' | 'permanentFixed'
+  const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed'
 
   // Income editing state
   const [editingIncome, setEditingIncome] = useState(false);
@@ -58,9 +61,6 @@ export default function App() {
   const monthKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
 
   // ── Auto-generate permanent fixed expenses ───────────────
-  // Runs on first load and whenever the user navigates to a different month.
-  // generateForMonth is safe to call repeatedly — the generation log ensures
-  // each (templateId, monthKey) pair is only processed once.
   useEffect(() => {
     generateForMonth(monthKey, bulkAddExpenses);
   }, [monthKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -89,6 +89,16 @@ export default function App() {
   const cashTotal   = totalExp - cardTotal;
 
   // ── Navigation ───────────────────────────────────────────
+  function goHome() {
+    setView('home');
+  }
+
+  function goToMonth(year, month) {
+    setViewYear(year);
+    setViewMonth(month);
+    setView('month');
+  }
+
   function prevMonth() {
     if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
     else setViewMonth(m => m - 1);
@@ -166,161 +176,24 @@ export default function App() {
 
   // ── Header button ────────────────────────────────────────
   const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
-  const headerAction = activeTab === 'savings'
+  const headerAction = (view === 'month' && activeTab === 'savings')
     ? { label: 'Add Saving', fn: openAddSaving, color: 'var(--savings)' }
     : { label: 'Add Expense', fn: openAdd, color: 'var(--accent)' };
 
-  // ── Permanent Fixed Costs page ───────────────────────────
-  if (view === 'permanentFixed') {
-    return (
-      <>
-        <Header
-          onAdd={headerAction.fn}
-          addLabel={headerAction.label}
-          btnColor={headerAction.color}
-          darkMode={darkMode}
-          onToggleDark={() => setDarkMode(d => !d)}
-          onOpenPermanent={() => setView('permanentFixed')}
-        />
-        <FixedExpensesPage
-          templates={templates}
-          onAdd={addTemplate}
-          onUpdate={updateTemplate}
-          onDelete={deleteTemplate}
-          onToggle={toggleTemplate}
-          cardTypes={cardTypes}
-          onAddCard={addCardType}
-          onRemoveCard={removeCardType}
-          expenseCategories={expenseCategories}
-          onAddCategory={addExpenseCategory}
-          onRemoveCategory={removeExpenseCategory}
-          onBack={() => setView('main')}
-        />
-      </>
-    );
-  }
+  // ── Shared header + modals ───────────────────────────────
+  const sharedHeader = (
+    <Header
+      onAdd={headerAction.fn}
+      addLabel={headerAction.label}
+      btnColor={headerAction.color}
+      darkMode={darkMode}
+      onToggleDark={() => setDarkMode(d => !d)}
+      onOpenPermanent={() => setView('permanentFixed')}
+    />
+  );
 
-  return (
+  const sharedModals = (
     <>
-      <Header
-        onAdd={headerAction.fn}
-        addLabel={headerAction.label}
-        btnColor={headerAction.color}
-        darkMode={darkMode}
-        onToggleDark={() => setDarkMode(d => !d)}
-        onOpenPermanent={() => setView('permanentFixed')}
-      />
-
-      <main style={s.main}>
-
-        {/* ── Month nav ── */}
-        <div style={s.monthBar}>
-          <button style={s.navBtn} onClick={prevMonth}>&#8249;</button>
-          <div style={s.monthLabel}>
-            {MONTH_NAMES[viewMonth]} {viewYear}
-            {isCurrentMonth && <span style={s.currentBadge}>Current</span>}
-          </div>
-          <button style={s.navBtn} onClick={nextMonth}>&#8250;</button>
-        </div>
-
-        {/* ── Tab bar ── */}
-        <div style={s.tabBar}>
-          <TabBtn label="Expenses"  active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} color="var(--accent)" />
-          <TabBtn label="Savings"   active={activeTab === 'savings'}  onClick={() => setActiveTab('savings')}  color="var(--savings)" />
-          <TabBtn label="Analytics" active={activeTab === 'charts'}   onClick={() => setActiveTab('charts')}   color="var(--analytics)" />
-        </div>
-
-        {/* ── Income banner ── */}
-        <div style={s.incomeBanner}>
-          <div style={s.incomeLeft}>
-            <span style={s.incomeIcon}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
-              </svg>
-            </span>
-            <div>
-              <div style={s.incomeTitle}>Monthly Income</div>
-              {editingIncome ? (
-                <div style={s.incomeEditRow}>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    style={s.incomeInput}
-                    value={incomeInput}
-                    autoFocus
-                    onChange={e => setIncomeInput(formatIncomeInput(e.target.value))}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') commitIncome();
-                      if (e.key === 'Escape') setEditingIncome(false);
-                    }}
-                  />
-                  <button style={s.incomeConfirmBtn} onClick={commitIncome}>Set</button>
-                  <button style={s.incomeCancelBtn} onClick={() => setEditingIncome(false)}>&#x2715;</button>
-                </div>
-              ) : (
-                <div style={s.incomeValue}>
-                  {income > 0 ? fmtCOP(income) : <span style={s.incomeEmpty}>Not set — click to add</span>}
-                </div>
-              )}
-            </div>
-          </div>
-          {!editingIncome && (
-            <button style={s.incomeEditBtn} onClick={startEditIncome} title="Edit income">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {/* ── Summary cards ── */}
-        <div style={s.summaryRow}>
-          <SummaryCard label="Total Expenses"  value={fmtCOP(totalExp)} color="var(--danger)" />
-          <SummaryCard label="Total Savings"   value={fmtCOP(totalSav)} color="var(--savings)" />
-          <SummaryCard label="Paid by Card"    value={fmtCOP(cardTotal)} color="var(--accent)" />
-          <SummaryCard label="Cash / Other"    value={fmtCOP(cashTotal)} color="var(--warning)" />
-          <SummaryCard
-            label="Remaining"
-            value={income > 0 ? fmtCOP(remaining) : '—'}
-            color={income > 0 ? (remaining >= 0 ? 'var(--success)' : 'var(--danger)') : undefined}
-          />
-        </div>
-
-        {/* ── Expenses tab ── */}
-        {activeTab === 'expenses' && (
-          <ExpenseTable
-            expenses={monthExpenses}
-            onEdit={openEdit}
-            onDelete={handleDelete}
-            onAddFixed={openAddFixed}
-          />
-        )}
-
-        {/* ── Savings tab ── */}
-        {activeTab === 'savings' && (
-          <SavingTable
-            savings={monthSavings}
-            onEdit={openEditSaving}
-            onDelete={handleDeleteSaving}
-          />
-        )}
-
-        {/* ── Analytics tab ── */}
-        {activeTab === 'charts' && (
-          <>
-            <div style={s.chartsGrid}>
-              <CardVsCashChart expenses={monthExpenses} />
-              <ByCardTypeChart expenses={monthExpenses} />
-            </div>
-            <div style={s.chartsGrid}>
-              <ByPersonChart expenses={monthExpenses} />
-              <MonthlyTrendChart expenses={expenses} />
-            </div>
-          </>
-        )}
-      </main>
-
-      {/* ── Expense Modal ── */}
       <ExpenseModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -334,8 +207,6 @@ export default function App() {
         editing={editing}
         defaultCostType={defaultCostType}
       />
-
-      {/* ── Saving Modal ── */}
       <SavingModal
         open={savingModalOpen}
         onClose={() => setSavingModalOpen(false)}
@@ -348,11 +219,180 @@ export default function App() {
         onRemoveCategory={removeSavingCategory}
         editing={editingSaving}
       />
+      {toast && <div style={s.toast}>{toast}</div>}
+    </>
+  );
 
-      {/* ── Toast ── */}
-      {toast && (
-        <div style={s.toast}>{toast}</div>
-      )}
+  // ── Permanent Fixed Costs page ───────────────────────────
+  if (view === 'permanentFixed') {
+    return (
+      <>
+        {sharedHeader}
+        <FixedExpensesPage
+          templates={templates}
+          onAdd={addTemplate}
+          onUpdate={updateTemplate}
+          onDelete={deleteTemplate}
+          onToggle={toggleTemplate}
+          cardTypes={cardTypes}
+          onAddCard={addCardType}
+          onRemoveCard={removeCardType}
+          expenseCategories={expenseCategories}
+          onAddCategory={addExpenseCategory}
+          onRemoveCategory={removeExpenseCategory}
+          onBack={() => setView('home')}
+        />
+        {sharedModals}
+      </>
+    );
+  }
+
+  return (
+    <>
+      {sharedHeader}
+
+      <div style={s.layout}>
+        {/* ── Left sidebar ── */}
+        <Sidebar
+          view={view}
+          viewYear={viewYear}
+          viewMonth={viewMonth}
+          onHome={goHome}
+          onSelectMonth={goToMonth}
+          expenses={expenses}
+          savings={savings}
+        />
+
+        {/* ── Main content ── */}
+        <div style={s.content}>
+
+          {/* ── Home / Annual view ── */}
+          {view === 'home' && (
+            <AnnualDashboard
+              year={annualYear}
+              expenses={expenses}
+              savings={savings}
+              getIncome={getIncome}
+              onPrevYear={() => setAnnualYear(y => y - 1)}
+              onNextYear={() => setAnnualYear(y => y + 1)}
+            />
+          )}
+
+          {/* ── Month view ── */}
+          {view === 'month' && (
+            <main style={s.main}>
+
+              {/* Month nav */}
+              <div style={s.monthBar}>
+                <button style={s.navBtn} onClick={prevMonth}>&#8249;</button>
+                <div style={s.monthLabel}>
+                  {MONTH_NAMES[viewMonth]} {viewYear}
+                  {isCurrentMonth && <span style={s.currentBadge}>Current</span>}
+                </div>
+                <button style={s.navBtn} onClick={nextMonth}>&#8250;</button>
+              </div>
+
+              {/* Tab bar */}
+              <div style={s.tabBar}>
+                <TabBtn label="Expenses"  active={activeTab === 'expenses'} onClick={() => setActiveTab('expenses')} color="var(--accent)" />
+                <TabBtn label="Savings"   active={activeTab === 'savings'}  onClick={() => setActiveTab('savings')}  color="var(--savings)" />
+                <TabBtn label="Analytics" active={activeTab === 'charts'}   onClick={() => setActiveTab('charts')}   color="var(--analytics)" />
+              </div>
+
+              {/* Income banner */}
+              <div style={s.incomeBanner}>
+                <div style={s.incomeLeft}>
+                  <span style={s.incomeIcon}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+                    </svg>
+                  </span>
+                  <div>
+                    <div style={s.incomeTitle}>Monthly Income</div>
+                    {editingIncome ? (
+                      <div style={s.incomeEditRow}>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          style={s.incomeInput}
+                          value={incomeInput}
+                          autoFocus
+                          onChange={e => setIncomeInput(formatIncomeInput(e.target.value))}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') commitIncome();
+                            if (e.key === 'Escape') setEditingIncome(false);
+                          }}
+                        />
+                        <button style={s.incomeConfirmBtn} onClick={commitIncome}>Set</button>
+                        <button style={s.incomeCancelBtn} onClick={() => setEditingIncome(false)}>&#x2715;</button>
+                      </div>
+                    ) : (
+                      <div style={s.incomeValue}>
+                        {income > 0 ? fmtCOP(income) : <span style={s.incomeEmpty}>Not set — click to add</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {!editingIncome && (
+                  <button style={s.incomeEditBtn} onClick={startEditIncome} title="Edit income">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Summary cards */}
+              <div style={s.summaryRow}>
+                <SummaryCard label="Total Expenses"  value={fmtCOP(totalExp)} color="var(--danger)" />
+                <SummaryCard label="Total Savings"   value={fmtCOP(totalSav)} color="var(--savings)" />
+                <SummaryCard label="Paid by Card"    value={fmtCOP(cardTotal)} color="var(--accent)" />
+                <SummaryCard label="Cash / Other"    value={fmtCOP(cashTotal)} color="var(--warning)" />
+                <SummaryCard
+                  label="Remaining"
+                  value={income > 0 ? fmtCOP(remaining) : '—'}
+                  color={income > 0 ? (remaining >= 0 ? 'var(--success)' : 'var(--danger)') : undefined}
+                />
+              </div>
+
+              {/* Expenses tab */}
+              {activeTab === 'expenses' && (
+                <ExpenseTable
+                  expenses={monthExpenses}
+                  onEdit={openEdit}
+                  onDelete={handleDelete}
+                  onAddFixed={openAddFixed}
+                />
+              )}
+
+              {/* Savings tab */}
+              {activeTab === 'savings' && (
+                <SavingTable
+                  savings={monthSavings}
+                  onEdit={openEditSaving}
+                  onDelete={handleDeleteSaving}
+                />
+              )}
+
+              {/* Analytics tab */}
+              {activeTab === 'charts' && (
+                <>
+                  <div style={s.chartsGrid}>
+                    <CardVsCashChart expenses={monthExpenses} />
+                    <ByCardTypeChart expenses={monthExpenses} />
+                  </div>
+                  <div style={s.chartsGrid}>
+                    <ByPersonChart expenses={monthExpenses} />
+                    <MonthlyTrendChart expenses={expenses} />
+                  </div>
+                </>
+              )}
+            </main>
+          )}
+        </div>
+      </div>
+
+      {sharedModals}
     </>
   );
 }
@@ -384,8 +424,17 @@ function TabBtn({ label, active, onClick, color }) {
 
 // ── Styles ───────────────────────────────────────────────────
 const s = {
+  layout: {
+    display: 'flex',
+    alignItems: 'flex-start',
+  },
+  content: {
+    flex: 1,
+    minWidth: 0,
+    overflowX: 'hidden',
+  },
   main: {
-    maxWidth: 1100,
+    maxWidth: 1000,
     margin: '0 auto',
     padding: '28px 24px 80px',
   },
