@@ -186,9 +186,6 @@ export default function App() {
       onAdd={headerAction.fn}
       addLabel={headerAction.label}
       btnColor={headerAction.color}
-      darkMode={darkMode}
-      onToggleDark={() => setDarkMode(d => !d)}
-      onOpenPermanent={() => setView('permanentFixed')}
     />
   );
 
@@ -261,6 +258,9 @@ export default function App() {
           onSelectMonth={goToMonth}
           expenses={expenses}
           savings={savings}
+          darkMode={darkMode}
+          onToggleDark={() => setDarkMode(d => !d)}
+          onOpenPermanent={() => setView('permanentFixed')}
         />
 
         {/* ── Main content ── */}
