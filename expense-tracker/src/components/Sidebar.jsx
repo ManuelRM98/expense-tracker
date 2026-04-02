@@ -5,7 +5,7 @@ const now = new Date();
 const CURRENT_YEAR = now.getFullYear();
 const CURRENT_MONTH = now.getMonth(); // 0-indexed
 
-export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMonth, expenses, savings, darkMode, onToggleDark, onOpenPermanent }) {
+export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMonth, expenses, savings, onOpenSettings }) {
   const yearsWithData = useMemo(() => {
     const years = new Set([CURRENT_YEAR]);
     expenses.forEach(e => years.add(parseInt(e.date.split('-')[0])));
@@ -85,23 +85,11 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
           {/* Bottom action buttons */}
           <div style={s.bottomActions}>
             <div style={s.divider} />
-            <button style={s.actionBtn} onClick={onOpenPermanent} title="Permanent Fixed Costs">
+            <button style={{ ...s.actionBtn, ...(view === 'settings' ? s.actionBtnActive : {}) }} onClick={onOpenSettings} title="Settings">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                <path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/>
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.02 7.02 0 0 0-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
               </svg>
-              Permanent Fixed Costs
-            </button>
-            <button style={s.actionBtn} onClick={onToggleDark} title={darkMode ? 'Modo claro' : 'Modo oscuro'}>
-              {darkMode ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                  <path d="M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7zm0-5a1 1 0 0 1 1 1v1a1 1 0 0 1-2 0V3a1 1 0 0 1 1-1zm0 18a1 1 0 0 1-1-1v-1a1 1 0 0 1 2 0v1a1 1 0 0 1-1 1zM4.22 5.64a1 1 0 0 1 1.42-1.42l.7.71a1 1 0 0 1-1.41 1.41l-.71-.7zm13.44 12.72a1 1 0 0 1 1.41-1.41l.71.7a1 1 0 1 1-1.42 1.42l-.7-.71zM3 12a1 1 0 0 1 1-1h1a1 1 0 0 1 0 2H4a1 1 0 0 1-1-1zm16 0a1 1 0 0 1 1-1h1a1 1 0 0 1 0 2h-1a1 1 0 0 1-1-1zM4.22 18.36l.71-.7a1 1 0 1 1 1.41 1.41l-.7.71a1 1 0 0 1-1.42-1.42zM17.66 5.64l.7-.71a1 1 0 1 1 1.42 1.42l-.71.7a1 1 0 0 1-1.41-1.41z"/>
-                </svg>
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                </svg>
-              )}
-              {darkMode ? 'Modo claro' : 'Modo oscuro'}
+              Settings
             </button>
           </div>
         </>
@@ -266,5 +254,9 @@ const s = {
     textAlign: 'left',
     transition: 'background 0.12s',
     whiteSpace: 'nowrap',
+  },
+  actionBtnActive: {
+    background: 'var(--accent-light)',
+    color: 'var(--accent)',
   },
 };

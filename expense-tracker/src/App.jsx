@@ -10,6 +10,7 @@ import ExpenseTable from './components/ExpenseTable';
 import SavingModal from './components/SavingModal';
 import SavingTable from './components/SavingTable';
 import FixedExpensesPage from './components/FixedExpensesPage';
+import SettingsPage from './components/SettingsPage';
 import {
   CardVsCashChart,
   ByCardTypeChart,
@@ -46,7 +47,7 @@ export default function App() {
   const [toastTimer, setToastTimer] = useState(null);
   const [activeTab,  setActiveTab] = useState('expenses'); // 'expenses' | 'savings' | 'charts'
   const [darkMode,   setDarkMode]  = useState(() => localStorage.getItem('theme') === 'dark');
-  const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed'
+  const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed' | 'settings'
 
   // Income editing state
   const [editingIncome, setEditingIncome] = useState(false);
@@ -220,6 +221,35 @@ export default function App() {
     </>
   );
 
+  // ── Settings page ────────────────────────────────────────
+  if (view === 'settings') {
+    return (
+      <>
+        {sharedHeader}
+        <div style={s.layout}>
+          <Sidebar
+            view={view}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            onHome={goHome}
+            onSelectMonth={goToMonth}
+            expenses={expenses}
+            savings={savings}
+            onOpenSettings={() => setView('settings')}
+          />
+          <div style={s.content}>
+            <SettingsPage
+              darkMode={darkMode}
+              onToggleDark={() => setDarkMode(d => !d)}
+              onOpenPermanent={() => setView('permanentFixed')}
+            />
+          </div>
+        </div>
+        {sharedModals}
+      </>
+    );
+  }
+
   // ── Permanent Fixed Costs page ───────────────────────────
   if (view === 'permanentFixed') {
     return (
@@ -237,7 +267,7 @@ export default function App() {
           expenseCategories={expenseCategories}
           onAddCategory={addExpenseCategory}
           onRemoveCategory={removeExpenseCategory}
-          onBack={() => setView('home')}
+          onBack={() => setView('settings')}
         />
         {sharedModals}
       </>
@@ -258,9 +288,7 @@ export default function App() {
           onSelectMonth={goToMonth}
           expenses={expenses}
           savings={savings}
-          darkMode={darkMode}
-          onToggleDark={() => setDarkMode(d => !d)}
-          onOpenPermanent={() => setView('permanentFixed')}
+          onOpenSettings={() => setView('settings')}
         />
 
         {/* ── Main content ── */}
