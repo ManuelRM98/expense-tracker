@@ -419,7 +419,7 @@ const s = {
     flex: 2, padding: 13, borderRadius: 'var(--radius-sm)', border: 'none',
     background: 'var(--accent)', color: '#fff', fontSize: 15, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'inherit',
-    boxShadow: '0 4px 12px rgba(48,209,88,.35)',
+    boxShadow: '0 4px 12px rgba(180,30,30,.35)',
   },
   segmentedControl: {
     display: 'flex', borderRadius: 'var(--radius-sm)',

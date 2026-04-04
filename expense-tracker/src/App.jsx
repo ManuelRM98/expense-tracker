@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useExpenses } from './hooks/useExpenses';
 import { useFixedExpenses } from './hooks/useFixedExpenses';
+import { useBudget } from './hooks/useBudget';
 import { fmtCOP, MONTH_NAMES } from './utils/format';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -11,6 +12,10 @@ import SavingModal from './components/SavingModal';
 import SavingTable from './components/SavingTable';
 import FixedExpensesPage from './components/FixedExpensesPage';
 import SettingsPage from './components/SettingsPage';
+import GlobalSalaryPage from './components/GlobalSalaryPage';
+import BudgetAllocationPage from './components/BudgetAllocationPage';
+import BudgetCards from './components/BudgetCards';
+import IncomeEntryModal from './components/IncomeEntryModal';
 import {
   CardVsCashChart,
   ByCardTypeChart,
@@ -26,7 +31,10 @@ export default function App() {
     addExpense, bulkAddExpenses, updateExpense, deleteExpense, addCardType, removeCardType, addExpenseCategory, removeExpenseCategory,
     savings, savingCategories,
     addSaving, updateSaving, deleteSaving, addSavingCategory, removeSavingCategory,
-    getIncome, setIncome,
+    baseSalary, saveBaseSalary,
+    getIncome, getIncomeEntries,
+    addIncomeEntry, updateIncomeEntry, deleteIncomeEntry,
+    ensureSalaryForMonth,
   } = useExpenses();
 
   const {
@@ -34,6 +42,15 @@ export default function App() {
     addTemplate, updateTemplate, deleteTemplate, toggleTemplate,
     generateForMonth,
   } = useFixedExpenses();
+
+  const {
+    defaultBudget,
+    getBudgetForMonth,
+    saveDefaultBudget,
+    saveMonthBudget,
+    clearMonthBudget,
+    loadMonthBudget,
+  } = useBudget();
 
   const [viewYear,  setViewYear]  = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -47,11 +64,11 @@ export default function App() {
   const [toastTimer, setToastTimer] = useState(null);
   const [activeTab,  setActiveTab] = useState('expenses'); // 'expenses' | 'savings' | 'charts'
   const [darkMode,   setDarkMode]  = useState(() => localStorage.getItem('theme') === 'dark');
-  const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed' | 'settings'
+  const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed' | 'settings' | 'globalSalary' | 'budgetAllocation'
 
-  // Income editing state
-  const [editingIncome, setEditingIncome] = useState(false);
-  const [incomeInput,   setIncomeInput]   = useState('');
+  // Income entry modal state
+  const [incomeModalOpen,    setIncomeModalOpen]    = useState(false);
+  const [editingIncomeEntry, setEditingIncomeEntry] = useState(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -61,9 +78,11 @@ export default function App() {
   // ── Month key ────────────────────────────────────────────
   const monthKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
 
-  // ── Auto-generate permanent fixed expenses ───────────────
+  // ── Auto-generate permanent fixed expenses + salary ──────
   useEffect(() => {
     generateForMonth(monthKey, bulkAddExpenses);
+    ensureSalaryForMonth(monthKey);
+    loadMonthBudget(monthKey);
   }, [monthKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Month filter ─────────────────────────────────────────
@@ -82,12 +101,15 @@ export default function App() {
   [savings, viewYear, viewMonth]);
 
   // ── Summary ──────────────────────────────────────────────
-  const income      = getIncome(monthKey);
-  const totalExp    = monthExpenses.reduce((s, e) => s + e.price, 0);
-  const totalSav    = monthSavings.reduce((s, sv) => s + sv.price, 0);
-  const remaining   = income - totalExp - totalSav;
-  const cardTotal   = monthExpenses.filter(e => e.cardPay === 'Yes').reduce((s, e) => s + e.price, 0);
-  const cashTotal   = totalExp - cardTotal;
+  const income        = getIncome(monthKey);
+  const totalExp      = monthExpenses.reduce((s, e) => s + e.price, 0);
+  const totalSav      = monthSavings.reduce((s, sv) => s + sv.price, 0);
+  const remaining     = income - totalExp - totalSav;
+  const cardTotal     = monthExpenses.filter(e => e.cardPay === 'Yes').reduce((s, e) => s + e.price, 0);
+  const cashTotal     = totalExp - cardTotal;
+  const totalFixed    = monthExpenses.filter(e => e.costType === 'fixed').reduce((s, e) => s + e.price, 0);
+  const totalVariable = monthExpenses.filter(e => e.costType !== 'fixed').reduce((s, e) => s + e.price, 0);
+  const monthBudget   = getBudgetForMonth(monthKey);
 
   // ── Navigation ───────────────────────────────────────────
   function goHome() {
@@ -158,21 +180,22 @@ export default function App() {
     showToast('Saving deleted.');
   }
 
-  // ── Income editing ───────────────────────────────────────
-  function startEditIncome() {
-    setIncomeInput(income > 0 ? income.toLocaleString('es-CO') : '');
-    setEditingIncome(true);
+  // ── Income entries ───────────────────────────────────────
+  function openAddIncome() { setEditingIncomeEntry(null); setIncomeModalOpen(true); }
+  function openEditIncome(entry) { setEditingIncomeEntry(entry); setIncomeModalOpen(true); }
+
+  async function handleSaveIncome(data) {
+    if (editingIncomeEntry) {
+      await updateIncomeEntry(editingIncomeEntry.id, data);
+    } else {
+      await addIncomeEntry(data);
+    }
+    setIncomeModalOpen(false);
   }
 
-  function formatIncomeInput(raw) {
-    const digits = raw.replace(/\D/g, '');
-    return digits ? parseInt(digits, 10).toLocaleString('es-CO') : '';
-  }
-
-  function commitIncome() {
-    const val = parseInt(incomeInput.replace(/\D/g, '') || '0', 10);
-    setIncome(monthKey, val);
-    setEditingIncome(false);
+  async function handleDeleteIncome(id) {
+    if (!window.confirm('Delete this income entry?')) return;
+    await deleteIncomeEntry(id);
   }
 
   // ── Header button ────────────────────────────────────────
@@ -187,6 +210,7 @@ export default function App() {
       onAdd={headerAction.fn}
       addLabel={headerAction.label}
       btnColor={headerAction.color}
+      onHome={goHome}
     />
   );
 
@@ -217,6 +241,13 @@ export default function App() {
         onRemoveCategory={removeSavingCategory}
         editing={editingSaving}
       />
+      <IncomeEntryModal
+        open={incomeModalOpen}
+        entry={editingIncomeEntry}
+        monthKey={monthKey}
+        onSave={handleSaveIncome}
+        onClose={() => setIncomeModalOpen(false)}
+      />
       {toast && <div style={s.toast}>{toast}</div>}
     </>
   );
@@ -242,6 +273,67 @@ export default function App() {
               darkMode={darkMode}
               onToggleDark={() => setDarkMode(d => !d)}
               onOpenPermanent={() => setView('permanentFixed')}
+              onOpenGlobalSalary={() => setView('globalSalary')}
+              onOpenBudgetAllocation={() => setView('budgetAllocation')}
+            />
+          </div>
+        </div>
+        {sharedModals}
+      </>
+    );
+  }
+
+  // ── Budget Allocation page ───────────────────────────────
+  if (view === 'budgetAllocation') {
+    return (
+      <>
+        {sharedHeader}
+        <div style={s.layout}>
+          <Sidebar
+            view={view}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            onHome={goHome}
+            onSelectMonth={goToMonth}
+            expenses={expenses}
+            savings={savings}
+            onOpenSettings={() => setView('settings')}
+          />
+          <div style={s.content}>
+            <BudgetAllocationPage
+              defaultBudget={defaultBudget}
+              baseSalary={baseSalary}
+              onSaveDefault={saveDefaultBudget}
+              onBack={() => setView('settings')}
+            />
+          </div>
+        </div>
+        {sharedModals}
+      </>
+    );
+  }
+
+  // ── Global Salary page ───────────────────────────────────
+  if (view === 'globalSalary') {
+    return (
+      <>
+        {sharedHeader}
+        <div style={s.layout}>
+          <Sidebar
+            view={view}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            onHome={goHome}
+            onSelectMonth={goToMonth}
+            expenses={expenses}
+            savings={savings}
+            onOpenSettings={() => setView('settings')}
+          />
+          <div style={s.content}>
+            <GlobalSalaryPage
+              baseSalary={baseSalary}
+              onSave={saveBaseSalary}
+              onBack={() => setView('settings')}
             />
           </div>
         </div>
@@ -329,46 +421,67 @@ export default function App() {
 
               {/* Income banner */}
               <div style={s.incomeBanner}>
-                <div style={s.incomeLeft}>
-                  <span style={s.incomeIcon}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
-                    </svg>
-                  </span>
-                  <div>
-                    <div style={s.incomeTitle}>Monthly Income</div>
-                    {editingIncome ? (
-                      <div style={s.incomeEditRow}>
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          style={s.incomeInput}
-                          value={incomeInput}
-                          autoFocus
-                          onChange={e => setIncomeInput(formatIncomeInput(e.target.value))}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') commitIncome();
-                            if (e.key === 'Escape') setEditingIncome(false);
-                          }}
-                        />
-                        <button style={s.incomeConfirmBtn} onClick={commitIncome}>Set</button>
-                        <button style={s.incomeCancelBtn} onClick={() => setEditingIncome(false)}>&#x2715;</button>
-                      </div>
-                    ) : (
+                <div style={s.incomeTop}>
+                  <div style={s.incomeLeft}>
+                    <span style={s.incomeIcon}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+                      </svg>
+                    </span>
+                    <div>
+                      <div style={s.incomeTitle}>Monthly Income</div>
                       <div style={s.incomeValue}>
-                        {income > 0 ? fmtCOP(income) : <span style={s.incomeEmpty}>Not set — click to add</span>}
+                        {income > 0 ? fmtCOP(income) : <span style={s.incomeEmpty}>No income — add an entry</span>}
                       </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-                {!editingIncome && (
-                  <button style={s.incomeEditBtn} onClick={startEditIncome} title="Edit income">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                  <button style={s.incomeAddBtn} onClick={openAddIncome} title="Add income entry">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                     </svg>
                   </button>
+                </div>
+                {/* Entries list */}
+                {getIncomeEntries(monthKey).length > 0 && (
+                  <div style={s.incomeEntries}>
+                    {getIncomeEntries(monthKey).map(entry => (
+                      <div key={entry.id} style={s.incomeEntry}>
+                        <div style={s.incomeEntryLeft}>
+                          <span style={s.incomeTypeBadge}>{entry.incomeType}</span>
+                          <span style={s.incomeEntryDesc}>{entry.description}</span>
+                          {entry.currency === 'USD' && (
+                            <span style={s.incomeUsdNote}>USD {entry.originalAmount?.toLocaleString()} × {entry.exchangeRate?.toLocaleString()}</span>
+                          )}
+                        </div>
+                        <div style={s.incomeEntryRight}>
+                          <span style={s.incomeEntryCop}>{fmtCOP(entry.amountCop)}</span>
+                          <button style={s.incomeEntryBtn} onClick={() => openEditIncome(entry)} title="Edit">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                            </svg>
+                          </button>
+                          <button style={{ ...s.incomeEntryBtn, color: 'var(--danger)' }} onClick={() => handleDeleteIncome(entry.id)} title="Delete">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
+
+              {/* Budget allocation cards */}
+              <BudgetCards
+                budget={monthBudget}
+                income={income}
+                totalFixed={totalFixed}
+                totalVariable={totalVariable}
+                totalSavings={totalSav}
+                onSaveOverride={(pcts) => saveMonthBudget(monthKey, pcts)}
+                onClearOverride={() => clearMonthBudget(monthKey)}
+              />
 
               {/* Summary cards */}
               <div style={s.summaryRow}>
@@ -488,10 +601,12 @@ const s = {
 
   // Income banner
   incomeBanner: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     background: 'var(--surface)', borderRadius: 'var(--radius-md)',
     padding: '16px 20px', boxShadow: 'var(--shadow-sm)',
-    marginBottom: 16, gap: 12,
+    marginBottom: 16,
+  },
+  incomeTop: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
   },
   incomeLeft: {
     display: 'flex', alignItems: 'center', gap: 14, flex: 1,
@@ -513,31 +628,48 @@ const s = {
   incomeEmpty: {
     fontSize: 15, fontWeight: 500, color: 'var(--text-tertiary)',
   },
-  incomeEditRow: {
-    display: 'flex', alignItems: 'center', gap: 8,
-  },
-  incomeInput: {
-    fontFamily: 'inherit', fontSize: 18, fontWeight: 700,
-    background: 'var(--bg)', border: '1.5px solid var(--accent)',
-    borderRadius: 'var(--radius-sm)', padding: '6px 12px',
-    color: 'var(--text-primary)', outline: 'none', width: 200,
-  },
-  incomeConfirmBtn: {
-    padding: '7px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
-    background: 'var(--accent)', color: '#fff', fontSize: 14, fontWeight: 600,
-    cursor: 'pointer', fontFamily: 'inherit',
-  },
-  incomeCancelBtn: {
-    width: 30, height: 30, borderRadius: '50%', border: 'none',
-    background: 'var(--bg)', color: 'var(--text-secondary)',
-    cursor: 'pointer', fontFamily: 'inherit', fontSize: 14,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  incomeEditBtn: {
+  incomeAddBtn: {
     width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--border)',
-    background: 'var(--surface)', color: 'var(--text-secondary)',
+    background: 'var(--surface)', color: 'var(--accent)',
     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     flexShrink: 0,
+  },
+  incomeEntries: {
+    marginTop: 12,
+    borderTop: '1px solid var(--border)',
+    paddingTop: 10,
+    display: 'flex', flexDirection: 'column', gap: 6,
+  },
+  incomeEntry: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    gap: 8, padding: '6px 0',
+  },
+  incomeEntryLeft: {
+    display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0,
+  },
+  incomeTypeBadge: {
+    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+    padding: '2px 7px', borderRadius: 10,
+    background: 'var(--accent-light)', color: 'var(--accent)',
+    flexShrink: 0,
+  },
+  incomeEntryDesc: {
+    fontSize: 13, color: 'var(--text-primary)', fontWeight: 500,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  incomeUsdNote: {
+    fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0,
+  },
+  incomeEntryRight: {
+    display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+  },
+  incomeEntryCop: {
+    fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
+  },
+  incomeEntryBtn: {
+    width: 26, height: 26, borderRadius: '50%', border: 'none',
+    background: 'transparent', color: 'var(--text-tertiary)',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
 
   summaryRow: {

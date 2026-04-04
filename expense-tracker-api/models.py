@@ -28,11 +28,25 @@ class Saving(Base):
     card_type = Column(String,  nullable=False, default="")
 
 
-class Income(Base):
-    __tablename__ = "income"
+class GlobalConfig(Base):
+    """Key-value store for global settings (e.g. base_salary, salary_day)."""
+    __tablename__ = "global_config"
 
-    month_key = Column(String,  primary_key=True)   # "YYYY-MM"
-    amount    = Column(Integer, nullable=False, default=0)
+    key   = Column(String,  primary_key=True)
+    value = Column(String,  nullable=False)
+
+
+class IncomeEntry(Base):
+    __tablename__ = "income_entries"
+
+    id              = Column(String,  primary_key=True, index=True)
+    month_key       = Column(String,  nullable=False, index=True)   # "YYYY-MM"
+    income_type     = Column(String,  nullable=False)               # "salary" | "bonus" | "other"
+    description     = Column(String,  nullable=False)
+    currency        = Column(String,  nullable=False, default="COP")  # "COP" | "USD"
+    original_amount = Column(Integer, nullable=True)                # amount in source currency (USD)
+    exchange_rate   = Column(Integer, nullable=True)                # TRM COP/USD at time of entry
+    amount_cop      = Column(Integer, nullable=False)               # final amount in COP — used by formulas
 
 
 class FixedExpenseTemplate(Base):
@@ -73,3 +87,13 @@ class CardType(Base):
     __tablename__ = "card_types"
 
     name = Column(String, primary_key=True)
+
+
+class MonthBudget(Base):
+    """Budget allocation percentages. month_key='default' stores global defaults."""
+    __tablename__ = "month_budgets"
+
+    month_key    = Column(String,  primary_key=True)   # "default" | "YYYY-MM"
+    fixed_pct    = Column(Integer, nullable=False)      # 0-100
+    variable_pct = Column(Integer, nullable=False)
+    savings_pct  = Column(Integer, nullable=False)

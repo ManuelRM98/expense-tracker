@@ -135,14 +135,65 @@ export async function deleteSaving(id) {
   await request('DELETE', `/savings/${id}`);
 }
 
-// ── Income ─────────────────────────────────────────────────────────────────────
+// ── Income Entries ─────────────────────────────────────────────────────────────
 
-export async function getAllIncome() {
-  return request('GET', '/income');   // [{ month_key, amount }]
+function toIncomeEntry(d) {
+  return {
+    id:             d.id,
+    monthKey:       d.month_key,
+    incomeType:     d.income_type,
+    description:    d.description,
+    currency:       d.currency,
+    originalAmount: d.original_amount,
+    exchangeRate:   d.exchange_rate,
+    amountCop:      d.amount_cop,
+  };
 }
 
-export async function setIncome(monthKey, amount) {
-  return request('PUT', `/income/${monthKey}`, { amount });
+function fromIncomeEntry(d) {
+  return {
+    month_key:       d.monthKey,
+    income_type:     d.incomeType,
+    description:     d.description,
+    currency:        d.currency,
+    original_amount: d.originalAmount ?? null,
+    exchange_rate:   d.exchangeRate ?? null,
+    amount_cop:      d.amountCop,
+  };
+}
+
+export async function getIncomeEntries(monthKey) {
+  const data = await request('GET', `/income?month_key=${monthKey}`);
+  return data.map(toIncomeEntry);
+}
+
+export async function getAllIncomeEntries(year) {
+  const data = await request('GET', `/income?year=${year}`);
+  return data.map(toIncomeEntry);
+}
+
+export async function createIncomeEntry(data) {
+  const res = await request('POST', '/income', fromIncomeEntry(data));
+  return toIncomeEntry(res);
+}
+
+export async function updateIncomeEntry(id, data) {
+  const res = await request('PUT', `/income/${id}`, fromIncomeEntry(data));
+  return toIncomeEntry(res);
+}
+
+export async function deleteIncomeEntry(id) {
+  await request('DELETE', `/income/${id}`);
+}
+
+// ── Global Config ──────────────────────────────────────────────────────────────
+
+export async function getConfig() {
+  return request('GET', '/config');   // [{ key, value }]
+}
+
+export async function setConfig(key, value) {
+  return request('PUT', `/config/${key}`, { value: String(value) });
 }
 
 // ── Expense categories ─────────────────────────────────────────────────────────
@@ -216,4 +267,48 @@ export async function toggleTemplate(id) {
 export async function generateForMonth(monthKey) {
   const data = await request('POST', `/fixed-expenses/generate/${monthKey}`);
   return data.map(toExpense);   // Returns complete expense objects with IDs from the DB
+}
+
+// ── Budget Allocation ──────────────────────────────────────────────────────────
+
+function toBudget(d) {
+  return {
+    monthKey:    d.month_key,
+    fixedPct:    d.fixed_pct,
+    variablePct: d.variable_pct,
+    savingsPct:  d.savings_pct,
+    isOverride:  d.is_override,
+  };
+}
+
+function fromBudget(d) {
+  return {
+    fixed_pct:    d.fixedPct,
+    variable_pct: d.variablePct,
+    savings_pct:  d.savingsPct,
+  };
+}
+
+export async function getDefaultBudget() {
+  const data = await request('GET', '/budget/default');
+  return toBudget(data);
+}
+
+export async function setDefaultBudget(pcts) {
+  const data = await request('PUT', '/budget/default', fromBudget(pcts));
+  return toBudget(data);
+}
+
+export async function getMonthBudget(monthKey) {
+  const data = await request('GET', `/budget/${monthKey}`);
+  return toBudget(data);
+}
+
+export async function setMonthBudget(monthKey, pcts) {
+  const data = await request('PUT', `/budget/${monthKey}`, fromBudget(pcts));
+  return toBudget(data);
+}
+
+export async function deleteMonthBudget(monthKey) {
+  await request('DELETE', `/budget/${monthKey}`);
 }

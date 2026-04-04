@@ -67,7 +67,7 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
 
   const periodLabel = isCurrentYear
     ? `${MONTH_NAMES[0]} – ${MONTH_NAMES[maxMonthIdx]} ${year}`
-    : `Año completo ${year}`;
+    : `Full year ${year}`;
 
   return (
     <div style={s.container}>
@@ -76,7 +76,7 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
         <button style={s.navBtn} onClick={onPrevYear}>&#8249;</button>
         <div style={s.yearCenter}>
           <h1 style={s.yearTitle}>{year}</h1>
-          {isCurrentYear && <span style={s.badge}>En curso</span>}
+          {isCurrentYear && <span style={s.badge}>In Progress</span>}
         </div>
         <button
           style={{ ...s.navBtn, ...(year >= CURRENT_YEAR ? s.navBtnDisabled : {}) }}
@@ -88,15 +88,15 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
 
       {/* Summary cards */}
       <div style={s.cardsGrid}>
-        <AnnualCard label="Total Gastos" value={fmtCOP(totalExp)} color="var(--danger)" />
-        <AnnualCard label="Total Ahorros" value={fmtCOP(totalSav)} color="var(--savings)" />
+        <AnnualCard label="Total Expenses" value={fmtCOP(totalExp)} color="var(--danger)" />
+        <AnnualCard label="Total Savings" value={fmtCOP(totalSav)} color="var(--savings)" />
         {totalIncome > 0 && (
-          <AnnualCard label="Ingresos Registrados" value={fmtCOP(totalIncome)} color="var(--accent)" />
+          <AnnualCard label="Recorded Income" value={fmtCOP(totalIncome)} color="var(--accent)" />
         )}
-        <AnnualCard label="Promedio Mensual" value={fmtCOP(avgMonthlyExp)} color="var(--warning)" />
+        <AnnualCard label="Monthly Average" value={fmtCOP(avgMonthlyExp)} color="var(--warning)" />
         {totalIncome > 0 && (
           <AnnualCard
-            label="Balance Neto"
+            label="Net Balance"
             value={fmtCOP(netBalance)}
             color={netBalance >= 0 ? 'var(--success)' : 'var(--danger)'}
           />
@@ -106,7 +106,7 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
       {/* Monthly bar chart */}
       {hasData ? (
         <div style={s.chartCard}>
-          <p style={s.chartTitle}>Gastos y Ahorros por Mes</p>
+          <p style={s.chartTitle}>Expenses & Savings by Month</p>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={monthlyData} margin={{ top: 4, right: 16, left: 0, bottom: 4 }} barGap={3}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -117,8 +117,8 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
                 labelStyle={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: 4 }}
                 formatter={v => fmtCOP(v)}
               />
-              <Bar dataKey="gastos" name="Gastos" fill="var(--danger)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="ahorros" name="Ahorros" fill="var(--savings)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="gastos" name="Expenses" fill="var(--danger)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="ahorros" name="Savings" fill="var(--savings)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -127,15 +127,15 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
           <svg width="40" height="40" viewBox="0 0 24 24" fill="var(--text-tertiary)" style={{ marginBottom: 12 }}>
             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H7v-2h5v2zm5-4H7v-2h10v2zm0-4H7V7h10v2z"/>
           </svg>
-          <p style={s.emptyText}>No hay datos registrados para {year}</p>
-          <p style={s.emptyHint}>Selecciona un mes en el menú lateral para agregar registros</p>
+          <p style={s.emptyText}>No data recorded for {year}</p>
+          <p style={s.emptyHint}>Select a month from the sidebar to add records</p>
         </div>
       )}
 
       {/* Category breakdown */}
       {catData.length > 0 && (
         <div style={s.chartCard}>
-          <p style={s.chartTitle}>Top Categorías del Año</p>
+          <p style={s.chartTitle}>Top Categories of the Year</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {catData.map((cat, i) => (
               <div key={cat.name} style={s.catRow}>
@@ -158,13 +158,13 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
       {/* Monthly detail table */}
       {monthlyData.some(m => m.gastos > 0 || m.ahorros > 0 || m.income > 0) && (
         <div style={s.chartCard}>
-          <p style={s.chartTitle}>Detalle por Mes</p>
+          <p style={s.chartTitle}>Monthly Detail</p>
           <div style={s.tableWrap}>
             <div style={s.tableHead}>
-              <span>Mes</span>
-              <span style={{ textAlign: 'right' }}>Ingresos</span>
-              <span style={{ textAlign: 'right' }}>Gastos</span>
-              <span style={{ textAlign: 'right' }}>Ahorros</span>
+              <span>Month</span>
+              <span style={{ textAlign: 'right' }}>Income</span>
+              <span style={{ textAlign: 'right' }}>Expenses</span>
+              <span style={{ textAlign: 'right' }}>Savings</span>
               <span style={{ textAlign: 'right' }}>Balance</span>
             </div>
             {monthlyData.map((m, i) => {
@@ -300,9 +300,10 @@ const s = {
     marginBottom: 6,
   },
   cardValue: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 700,
     letterSpacing: '-0.5px',
+    whiteSpace: 'nowrap',
   },
   chartCard: {
     background: 'var(--surface)',

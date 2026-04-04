@@ -49,14 +49,46 @@ class SavingOut(SavingBase):
         from_attributes = True
 
 
-# ── Income ─────────────────────────────────────────────────────────────────────
+# ── Global Config ──────────────────────────────────────────────────────────────
 
-class IncomeSet(BaseModel):
-    amount: int = Field(ge=0)
+class GlobalConfigOut(BaseModel):
+    key:   str
+    value: str
+    class Config:
+        from_attributes = True
 
-class IncomeOut(BaseModel):
-    month_key: str
-    amount:    int
+class GlobalConfigSet(BaseModel):
+    value: str
+
+
+# ── Income Entries ─────────────────────────────────────────────────────────────
+
+class IncomeEntryCreate(BaseModel):
+    month_key:       str
+    income_type:     Literal["salary", "bonus", "other"]
+    description:     str
+    currency:        Literal["COP", "USD"] = "COP"
+    original_amount: int | None = None    # only when currency=USD
+    exchange_rate:   int | None = None    # TRM, only when currency=USD
+    amount_cop:      int = Field(gt=0)
+
+class IncomeEntryUpdate(BaseModel):
+    income_type:     Literal["salary", "bonus", "other"]
+    description:     str
+    currency:        Literal["COP", "USD"] = "COP"
+    original_amount: int | None = None
+    exchange_rate:   int | None = None
+    amount_cop:      int = Field(gt=0)
+
+class IncomeEntryOut(BaseModel):
+    id:              str
+    month_key:       str
+    income_type:     str
+    description:     str
+    currency:        str
+    original_amount: int | None
+    exchange_rate:   int | None
+    amount_cop:      int
     class Config:
         from_attributes = True
 
@@ -134,3 +166,20 @@ class TrendPoint(BaseModel):
     month_key:      str
     total_expenses: int
     total_savings:  int
+
+
+# ── Month Budget ───────────────────────────────────────────────────────────────
+
+class MonthBudgetSet(BaseModel):
+    fixed_pct:    int = Field(ge=0, le=100)
+    variable_pct: int = Field(ge=0, le=100)
+    savings_pct:  int = Field(ge=0, le=100)
+
+class MonthBudgetOut(BaseModel):
+    month_key:    str
+    fixed_pct:    int
+    variable_pct: int
+    savings_pct:  int
+    is_override:  bool   # True when month_key != "default"
+    class Config:
+        from_attributes = True

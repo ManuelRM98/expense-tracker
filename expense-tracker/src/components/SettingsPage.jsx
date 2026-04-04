@@ -1,4 +1,4 @@
-export default function SettingsPage({ onOpenPermanent, darkMode, onToggleDark }) {
+export default function SettingsPage({ onOpenPermanent, onOpenGlobalSalary, onOpenBudgetAllocation, darkMode, onToggleDark }) {
   return (
     <div style={s.page}>
       <div style={s.header}>
@@ -6,6 +6,46 @@ export default function SettingsPage({ onOpenPermanent, darkMode, onToggleDark }
       </div>
 
       <div style={s.card}>
+        {/* Global Salary */}
+        <button style={s.row} onClick={onOpenGlobalSalary}>
+          <div style={s.rowLeft}>
+            <span style={s.iconWrap}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+              </svg>
+            </span>
+            <div>
+              <div style={s.rowTitle}>Global Salary</div>
+              <div style={s.rowSub}>Set your base monthly salary</div>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+          </svg>
+        </button>
+
+        <div style={s.divider} />
+
+        {/* Budget Allocation */}
+        <button style={s.row} onClick={onOpenBudgetAllocation}>
+          <div style={s.rowLeft}>
+            <span style={s.iconWrap}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/>
+              </svg>
+            </span>
+            <div>
+              <div style={s.rowTitle}>Budget Allocation</div>
+              <div style={s.rowSub}>Set 50/30/20 rule and monthly overrides</div>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+          </svg>
+        </button>
+
+        <div style={s.divider} />
+
         {/* Permanent Fixed Costs */}
         <button style={s.row} onClick={onOpenPermanent}>
           <div style={s.rowLeft}>

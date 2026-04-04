@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import engine, Base
-from routers import expenses, savings, income, fixed_expenses, categories, analytics
+from routers import expenses, savings, income, fixed_expenses, categories, analytics, config, budget
 
 # ── Create all tables on startup (safe to run multiple times) ──────────────────
 import models  # noqa: F401 — ensures all models are registered before create_all
@@ -54,6 +54,8 @@ app.include_router(income.router)
 app.include_router(fixed_expenses.router)
 app.include_router(categories.router)
 app.include_router(analytics.router)
+app.include_router(config.router)
+app.include_router(budget.router)
 
 
 @app.get("/", tags=["Health"])

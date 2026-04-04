@@ -1,9 +1,9 @@
-export default function Header({ onAdd, addLabel, btnColor }) {
+export default function Header({ onAdd, addLabel, btnColor, onHome }) {
   return (
     <header style={styles.header}>
       <div style={styles.inner}>
         <div style={styles.titleRow}>
-          <div style={styles.title}>
+          <div style={styles.title} onClick={onHome} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onHome?.()} title="Go to Home">
             Expense<span style={{ color: 'var(--accent)' }}>Page</span>
           </div>
         </div>
@@ -46,6 +46,8 @@ const styles = {
     fontSize: 20,
     fontWeight: 700,
     letterSpacing: '-0.4px',
+    cursor: 'pointer',
+    userSelect: 'none',
   },
   themeBtn: {
     width: 34,

@@ -7,27 +7,29 @@ export function useExpenses() {
   const [expenseCategories, setExpenseCategories]  = useState([]);
   const [savings,           setSavings]            = useState([]);
   const [savingCategories,  setSavingCategories]   = useState([]);
-  const [incomeMap,         setIncomeMap]          = useState({});
+  const [incomeEntries,     setIncomeEntries]      = useState([]);   // IncomeEntry[]
+  const [baseSalary,        setBaseSalary]         = useState(0);    // from GlobalConfig
 
   // ── Load all data on mount ─────────────────────────────────────────────────
   useEffect(() => {
+    const currentYear = new Date().getFullYear();
     Promise.all([
       api.getExpenses(),
       api.getCardTypes(),
       api.getExpenseCategories(),
       api.getSavings(),
       api.getSavingCategories(),
-      api.getAllIncome(),
-    ]).then(([exps, cards, expCats, savs, savCats, incomes]) => {
+      api.getAllIncomeEntries(currentYear),
+      api.getConfig(),
+    ]).then(([exps, cards, expCats, savs, savCats, entries, config]) => {
       setExpenses(exps);
       setCardTypes(cards);
       setExpenseCategories(expCats);
       setSavings(savs);
       setSavingCategories(savCats);
-      // Convert [{ month_key, amount }] array to { "YYYY-MM": amount } map
-      const map = {};
-      incomes.forEach(({ month_key, amount }) => { map[month_key] = amount; });
-      setIncomeMap(map);
+      setIncomeEntries(entries);
+      const salaryConfig = config.find(c => c.key === 'base_salary');
+      setBaseSalary(salaryConfig ? parseInt(salaryConfig.value, 10) : 0);
     });
   }, []);
 
@@ -38,8 +40,6 @@ export function useExpenses() {
     setExpenses(prev => [...prev, created]);
   }, []);
 
-  // Called by generateForMonth with expenses already created in the DB.
-  // Only updates local state — no API call needed.
   const bulkAddExpenses = useCallback((completedExpenses) => {
     setExpenses(prev => [...prev, ...completedExpenses]);
   }, []);
@@ -109,14 +109,100 @@ export function useExpenses() {
 
   // ── Income ─────────────────────────────────────────────────────────────────
 
+  /** Returns total COP income for a given month (sum of all entries). */
   const getIncome = useCallback((yearMonth) => {
-    return incomeMap[yearMonth] ?? 0;
-  }, [incomeMap]);
+    return incomeEntries
+      .filter(e => e.monthKey === yearMonth)
+      .reduce((sum, e) => sum + e.amountCop, 0);
+  }, [incomeEntries]);
 
-  const setIncome = useCallback(async (yearMonth, amount) => {
-    await api.setIncome(yearMonth, amount);
-    setIncomeMap(prev => ({ ...prev, [yearMonth]: amount }));
+  /** Returns all income entries for a given month. */
+  const getIncomeEntries = useCallback((yearMonth) => {
+    return incomeEntries.filter(e => e.monthKey === yearMonth);
+  }, [incomeEntries]);
+
+  const addIncomeEntry = useCallback(async (data) => {
+    const created = await api.createIncomeEntry(data);
+    setIncomeEntries(prev => [...prev, created]);
+    return created;
   }, []);
+
+  const updateIncomeEntry = useCallback(async (id, data) => {
+    const updated = await api.updateIncomeEntry(id, data);
+    setIncomeEntries(prev => prev.map(e => e.id === id ? updated : e));
+  }, []);
+
+  const deleteIncomeEntry = useCallback(async (id) => {
+    await api.deleteIncomeEntry(id);
+    setIncomeEntries(prev => prev.filter(e => e.id !== id));
+  }, []);
+
+  /**
+   * Auto-creates a salary entry for the given month if none exists.
+   * For future months, also updates an existing entry if the amount differs
+   * from the current baseSalary (so changes to Global Salary are reflected).
+   */
+  const ensureSalaryForMonth = useCallback(async (yearMonth) => {
+    if (baseSalary <= 0) return;
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const isFutureMonth = yearMonth > currentMonthKey;
+
+    const existingEntry = incomeEntries.find(
+      e => e.monthKey === yearMonth && e.incomeType === 'salary'
+    );
+
+    if (!existingEntry) {
+      await addIncomeEntry({
+        monthKey:    yearMonth,
+        incomeType:  'salary',
+        description: `Salary ${yearMonth}`,
+        currency:    'COP',
+        amountCop:   baseSalary,
+      });
+    } else if (isFutureMonth && existingEntry.amountCop !== baseSalary) {
+      await updateIncomeEntry(existingEntry.id, {
+        incomeType:     existingEntry.incomeType,
+        description:    existingEntry.description,
+        currency:       existingEntry.currency,
+        originalAmount: existingEntry.originalAmount,
+        exchangeRate:   existingEntry.exchangeRate,
+        amountCop:      baseSalary,
+      });
+    }
+  }, [baseSalary, incomeEntries, addIncomeEntry, updateIncomeEntry]);
+
+  /** Saves baseSalary to GlobalConfig and updates all future-month salary entries. */
+  const saveBaseSalary = useCallback(async (amount) => {
+    await api.setConfig('base_salary', amount);
+    setBaseSalary(amount);
+
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const futureSalaryEntries = incomeEntries.filter(
+      e => e.monthKey > currentMonthKey && e.incomeType === 'salary'
+    );
+
+    if (futureSalaryEntries.length > 0) {
+      await Promise.all(futureSalaryEntries.map(entry =>
+        api.updateIncomeEntry(entry.id, {
+          incomeType:     entry.incomeType,
+          description:    entry.description,
+          currency:       entry.currency,
+          originalAmount: entry.originalAmount,
+          exchangeRate:   entry.exchangeRate,
+          amountCop:      amount,
+        })
+      ));
+      setIncomeEntries(prev =>
+        prev.map(e =>
+          futureSalaryEntries.some(fe => fe.id === e.id)
+            ? { ...e, amountCop: amount }
+            : e
+        )
+      );
+    }
+  }, [incomeEntries]);
 
   return {
     expenses, cardTypes, expenseCategories,
@@ -124,6 +210,9 @@ export function useExpenses() {
     addCardType, removeCardType, addExpenseCategory, removeExpenseCategory,
     savings, savingCategories,
     addSaving, updateSaving, deleteSaving, addSavingCategory, removeSavingCategory,
-    getIncome, setIncome,
+    incomeEntries, baseSalary,
+    getIncome, getIncomeEntries,
+    addIncomeEntry, updateIncomeEntry, deleteIncomeEntry,
+    ensureSalaryForMonth, saveBaseSalary,
   };
 }
