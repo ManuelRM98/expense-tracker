@@ -1,82 +1,116 @@
 import { fmtCOP, fmtDate } from '../utils/format';
 
-export default function SavingTable({ savings, onEdit, onDelete }) {
-  if (savings.length === 0) {
-    return (
-      <div style={s.empty}>
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.35 }}>
-          <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
-        </svg>
-        <p style={{ fontSize: 15, fontWeight: 500, color: 'var(--text-tertiary)' }}>
-          No savings this month. Add your first one!
-        </p>
-      </div>
-    );
-  }
+const COLOR = 'var(--savings)';
 
+export default function SavingTable({ savings, onEdit, onDelete, onAdd }) {
   const sorted = [...savings].sort((a, b) => b.date.localeCompare(a.date));
+  const total = savings.reduce((sum, sv) => sum + sv.price, 0);
 
   return (
-    <div style={s.wrap}>
-      <table style={s.table}>
-        <thead>
-          <tr>
-            {['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', ''].map(h => (
-              <th key={h} style={s.th}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map(sv => (
-            <tr key={sv.id} style={s.tr}>
-              <td style={{ ...s.td, ...s.tdDate }}>{fmtDate(sv.date)}</td>
-              <td style={{ ...s.td, ...s.tdDesc }}>{sv.desc}</td>
-              <td style={s.td}>
-                <span style={s.badgeCat}>{sv.category}</span>
-              </td>
-              <td style={{ ...s.td, ...s.tdPrice }}>{fmtCOP(sv.price)}</td>
-              <td style={s.td}>
-                <span style={sv.cardPay === 'Yes' ? s.badgeYes : s.badgeNo}>
-                  {sv.cardPay}
-                </span>
-              </td>
-              <td style={s.td}>
-                {sv.cardType
-                  ? <span style={s.badgeCard}>{sv.cardType}</span>
-                  : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
-              </td>
-              <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
-                <button style={s.iconBtn} title="Edit" onClick={() => onEdit(sv)}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                  </svg>
-                </button>
-                <button style={{ ...s.iconBtn, ...s.iconDel }} title="Delete" onClick={() => onDelete(sv.id)}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div style={s.section}>
+      <div style={s.sectionHeader}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ ...s.sectionDot, background: COLOR }} />
+          <div>
+            <span style={s.sectionTitle}>Savings</span>
+            <div style={{ ...s.sectionTotal, color: COLOR }}>{fmtCOP(total)}</div>
+          </div>
+          <span style={s.sectionCount}>{savings.length} item{savings.length !== 1 ? 's' : ''}</span>
+        </div>
+        {onAdd && (
+          <button style={{ ...s.circleAddBtn, color: COLOR }} title="Add saving" onClick={onAdd}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {savings.length === 0 ? (
+        <div style={s.sectionEmpty}>No savings this month.</div>
+      ) : (
+        <div style={s.wrap}>
+          <table style={s.table}>
+            <thead>
+              <tr>
+                {['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', ''].map(h => (
+                  <th key={h} style={s.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map(sv => (
+                <tr key={sv.id} style={s.tr}>
+                  <td style={{ ...s.td, ...s.tdDate }}>{fmtDate(sv.date)}</td>
+                  <td style={{ ...s.td, ...s.tdDesc }}>{sv.desc}</td>
+                  <td style={s.td}>
+                    <span style={s.badgeCat}>{sv.category}</span>
+                  </td>
+                  <td style={{ ...s.td, ...s.tdPrice }}>{fmtCOP(sv.price)}</td>
+                  <td style={s.td}>
+                    <span style={sv.cardPay === 'Yes' ? s.badgeYes : s.badgeNo}>
+                      {sv.cardPay}
+                    </span>
+                  </td>
+                  <td style={s.td}>
+                    {sv.cardType
+                      ? <span style={s.badgeCard}>{sv.cardType}</span>
+                      : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
+                  </td>
+                  <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
+                    <button style={s.iconBtn} title="Edit" onClick={() => onEdit(sv)}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                      </svg>
+                    </button>
+                    <button style={{ ...s.iconBtn, ...s.iconDel }} title="Delete" onClick={() => onDelete(sv.id)}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 const s = {
-  empty: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '60px 24px', gap: 12,
-    color: 'var(--text-tertiary)',
+  section: {
     background: 'var(--surface)', borderRadius: 'var(--radius-md)',
-    boxShadow: 'var(--shadow-sm)',
+    boxShadow: 'var(--shadow-sm)', overflow: 'hidden',
   },
-  wrap: {
-    background: 'var(--surface)', borderRadius: 'var(--radius-md)',
-    boxShadow: 'var(--shadow-sm)', overflowX: 'auto',
+  sectionHeader: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '14px 20px', borderBottom: '1px solid var(--border)',
+    background: 'var(--surface-2)',
   },
+  sectionDot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
+  sectionTitle: {
+    fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.6px', color: 'var(--text-primary)', display: 'block',
+  },
+  sectionTotal: {
+    fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px', display: 'block', marginTop: 2,
+  },
+  sectionCount: {
+    fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)',
+    background: 'var(--bg)', border: '1px solid var(--border)',
+    borderRadius: 20, padding: '2px 8px',
+  },
+  sectionEmpty: {
+    padding: '20px 20px', fontSize: 14, color: 'var(--text-tertiary)', fontStyle: 'italic',
+  },
+  circleAddBtn: {
+    width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--border)',
+    background: 'var(--surface)', cursor: 'pointer', display: 'flex',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  wrap: { overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
     background: 'var(--surface-2)', fontSize: 11, fontWeight: 600,

@@ -2,7 +2,7 @@ import { fmtCOP, fmtDate } from '../utils/format';
 
 const COLS = ['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', 'Who Paid', ''];
 
-export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed }) {
+export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, onAddVariable }) {
   if (expenses.length === 0) {
     return (
       <div style={s.empty}>
@@ -41,6 +41,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed })
         total={variableTotal}
         onEdit={onEdit}
         onDelete={onDelete}
+        onAdd={onAddVariable}
       />
     </div>
   );
@@ -52,18 +53,19 @@ function Section({ title, color, expenses, total, onEdit, onDelete, onAdd }) {
       <div style={s.sectionHeader}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ ...s.sectionDot, background: color }} />
-          <span style={s.sectionTitle}>{title}</span>
+          <div>
+            <span style={s.sectionTitle}>{title}</span>
+            <div style={{ ...s.sectionTotal, color }}>{fmtCOP(total)}</div>
+          </div>
           <span style={s.sectionCount}>{expenses.length} item{expenses.length !== 1 ? 's' : ''}</span>
-          {/* Quick-add button — only shown for the Fixed Costs section */}
-          {onAdd && (
-            <button style={{ ...s.iconBtn, color }} title={`Add ${title} expense`} onClick={onAdd}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-              </svg>
-            </button>
-          )}
         </div>
-        <span style={{ ...s.sectionTotal, color }}>{fmtCOP(total)}</span>
+        {onAdd && (
+          <button style={{ ...s.circleAddBtn, color }} title={`Add ${title} expense`} onClick={onAdd}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {expenses.length === 0 ? (
@@ -146,7 +148,12 @@ const s = {
     borderRadius: 20, padding: '2px 8px',
   },
   sectionTotal: {
-    fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px',
+    fontSize: 18, fontWeight: 700, letterSpacing: '-0.4px', display: 'block', marginTop: 2,
+  },
+  circleAddBtn: {
+    width: 34, height: 34, borderRadius: '50%', border: '1.5px solid var(--border)',
+    background: 'var(--surface)', cursor: 'pointer', display: 'flex',
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   sectionEmpty: {
     padding: '20px 20px', fontSize: 14, color: 'var(--text-tertiary)',

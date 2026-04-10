@@ -16,11 +16,17 @@ import GlobalSalaryPage from './components/GlobalSalaryPage';
 import BudgetAllocationPage from './components/BudgetAllocationPage';
 import BudgetCards from './components/BudgetCards';
 import IncomeEntryModal from './components/IncomeEntryModal';
+import ConfirmDialog from './components/ConfirmDialog';
 import {
   CardVsCashChart,
   ByCardTypeChart,
   ByPersonChart,
   MonthlyTrendChart,
+  ExpensesByCategoryChart,
+  FixedVsVariableChart,
+  IncomeBreakdownChart,
+  SavingsByCategoryChart,
+  SavingsTrendChart,
 } from './components/Charts';
 
 const now = new Date();
@@ -62,13 +68,17 @@ export default function App() {
   const [editingSaving,   setEditingSaving]   = useState(null);
   const [toast,      setToast]     = useState('');
   const [toastTimer, setToastTimer] = useState(null);
-  const [activeTab,  setActiveTab] = useState('expenses'); // 'expenses' | 'savings' | 'charts'
+  const [activeTab,    setActiveTab]    = useState('expenses'); // 'expenses' | 'savings' | 'charts'
+  const [analyticsTab, setAnalyticsTab] = useState('overview'); // 'overview' | 'expenses' | 'savings'
   const [darkMode,   setDarkMode]  = useState(() => localStorage.getItem('theme') === 'dark');
   const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed' | 'settings' | 'globalSalary' | 'budgetAllocation'
 
   // Income entry modal state
   const [incomeModalOpen,    setIncomeModalOpen]    = useState(false);
   const [editingIncomeEntry, setEditingIncomeEntry] = useState(null);
+
+  // Confirm dialog state
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
@@ -131,6 +141,14 @@ export default function App() {
     else setViewMonth(m => m + 1);
   }
 
+  // ── Confirm dialog helper ────────────────────────────────
+  function askConfirm({ title, message, onConfirm }) {
+    setConfirmDialog({ open: true, title, message, onConfirm });
+  }
+  function closeConfirm() {
+    setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+  }
+
   // ── Toast ────────────────────────────────────────────────
   function showToast(msg) {
     setToast(msg);
@@ -155,9 +173,11 @@ export default function App() {
   }
 
   function handleDelete(id) {
-    if (!window.confirm('Delete this expense?')) return;
-    deleteExpense(id);
-    showToast('Expense deleted.');
+    askConfirm({
+      title: 'Delete expense',
+      message: 'This action cannot be undone.',
+      onConfirm: () => { closeConfirm(); deleteExpense(id); showToast('Expense deleted.'); },
+    });
   }
 
   // ── Saving CRUD ──────────────────────────────────────────
@@ -175,9 +195,11 @@ export default function App() {
   }
 
   function handleDeleteSaving(id) {
-    if (!window.confirm('Delete this saving?')) return;
-    deleteSaving(id);
-    showToast('Saving deleted.');
+    askConfirm({
+      title: 'Delete saving',
+      message: 'This action cannot be undone.',
+      onConfirm: () => { closeConfirm(); deleteSaving(id); showToast('Saving deleted.'); },
+    });
   }
 
   // ── Income entries ───────────────────────────────────────
@@ -194,8 +216,11 @@ export default function App() {
   }
 
   async function handleDeleteIncome(id) {
-    if (!window.confirm('Delete this income entry?')) return;
-    await deleteIncomeEntry(id);
+    askConfirm({
+      title: 'Delete income entry',
+      message: 'This action cannot be undone.',
+      onConfirm: async () => { closeConfirm(); await deleteIncomeEntry(id); },
+    });
   }
 
   // ── Header button ────────────────────────────────────────
@@ -249,6 +274,13 @@ export default function App() {
         onClose={() => setIncomeModalOpen(false)}
       />
       {toast && <div style={s.toast}>{toast}</div>}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </>
   );
 
@@ -472,17 +504,6 @@ export default function App() {
                 )}
               </div>
 
-              {/* Budget allocation cards */}
-              <BudgetCards
-                budget={monthBudget}
-                income={income}
-                totalFixed={totalFixed}
-                totalVariable={totalVariable}
-                totalSavings={totalSav}
-                onSaveOverride={(pcts) => saveMonthBudget(monthKey, pcts)}
-                onClearOverride={() => clearMonthBudget(monthKey)}
-              />
-
               {/* Summary cards */}
               <div style={s.summaryRow}>
                 <SummaryCard label="Total Expenses"  value={fmtCOP(totalExp)} color="var(--danger)" />
@@ -498,34 +519,96 @@ export default function App() {
 
               {/* Expenses tab */}
               {activeTab === 'expenses' && (
-                <ExpenseTable
-                  expenses={monthExpenses}
-                  onEdit={openEdit}
-                  onDelete={handleDelete}
-                  onAddFixed={openAddFixed}
-                />
+                <>
+                  <BudgetCards
+                    variant="expenses"
+                    budget={monthBudget}
+                    income={income}
+                    totalFixed={totalFixed}
+                    totalVariable={totalVariable}
+                    totalSavings={totalSav}
+                    onSaveOverride={(pcts) => saveMonthBudget(monthKey, pcts)}
+                    onClearOverride={() => clearMonthBudget(monthKey)}
+                  />
+                  <ExpenseTable
+                    expenses={monthExpenses}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                    onAddFixed={openAddFixed}
+                    onAddVariable={() => openAdd('variable')}
+                  />
+                </>
               )}
 
               {/* Savings tab */}
               {activeTab === 'savings' && (
-                <SavingTable
-                  savings={monthSavings}
-                  onEdit={openEditSaving}
-                  onDelete={handleDeleteSaving}
-                />
+                <>
+                  <BudgetCards
+                    variant="savings"
+                    budget={monthBudget}
+                    income={income}
+                    totalFixed={totalFixed}
+                    totalVariable={totalVariable}
+                    totalSavings={totalSav}
+                    onSaveOverride={(pcts) => saveMonthBudget(monthKey, pcts)}
+                    onClearOverride={() => clearMonthBudget(monthKey)}
+                  />
+                  <SavingTable
+                    savings={monthSavings}
+                    onEdit={openEditSaving}
+                    onDelete={handleDeleteSaving}
+                    onAdd={openAddSaving}
+                  />
+                </>
               )}
 
               {/* Analytics tab */}
               {activeTab === 'charts' && (
                 <>
-                  <div style={s.chartsGrid}>
-                    <CardVsCashChart expenses={monthExpenses} />
-                    <ByCardTypeChart expenses={monthExpenses} />
+                  <div style={s.subTabBar}>
+                    <SubTabBtn label="Overview" active={analyticsTab === 'overview'} onClick={() => setAnalyticsTab('overview')} />
+                    <SubTabBtn label="Expenses" active={analyticsTab === 'expenses'} onClick={() => setAnalyticsTab('expenses')} />
+                    <SubTabBtn label="Savings"  active={analyticsTab === 'savings'}  onClick={() => setAnalyticsTab('savings')} />
                   </div>
-                  <div style={s.chartsGrid}>
-                    <ByPersonChart expenses={monthExpenses} />
-                    <MonthlyTrendChart expenses={expenses} />
-                  </div>
+
+                  {analyticsTab === 'overview' && (
+                    <>
+                      {income > 0 && (
+                        <div style={s.rateStrip}>
+                          <RateCard label="Expense Rate" value={`${Math.round((totalExp / income) * 100)}%`} color="var(--danger)" />
+                          <RateCard label="Savings Rate" value={`${Math.round((totalSav / income) * 100)}%`} color="var(--savings)" />
+                          <RateCard label="Free Cash"    value={`${Math.max(0, Math.round(((income - totalExp - totalSav) / income) * 100))}%`} color="var(--accent)" />
+                        </div>
+                      )}
+                      <div style={s.chartsGrid}>
+                        <IncomeBreakdownChart income={income} totalExp={totalExp} totalSav={totalSav} />
+                        <MonthlyTrendChart expenses={expenses} />
+                      </div>
+                    </>
+                  )}
+
+                  {analyticsTab === 'expenses' && (
+                    <>
+                      <div style={s.chartsGrid}>
+                        <ExpensesByCategoryChart expenses={monthExpenses} />
+                        <FixedVsVariableChart expenses={monthExpenses} />
+                      </div>
+                      <div style={s.chartsGrid}>
+                        <CardVsCashChart expenses={monthExpenses} />
+                        <ByCardTypeChart expenses={monthExpenses} />
+                      </div>
+                      <div style={s.chartsGrid}>
+                        <ByPersonChart expenses={monthExpenses} />
+                      </div>
+                    </>
+                  )}
+
+                  {analyticsTab === 'savings' && (
+                    <div style={s.chartsGrid}>
+                      <SavingsByCategoryChart savings={monthSavings} />
+                      <SavingsTrendChart savings={savings} />
+                    </div>
+                  )}
                 </>
               )}
             </main>
@@ -544,6 +627,26 @@ function SummaryCard({ label, value, color }) {
     <div style={s.summaryCard}>
       <div style={s.summaryLabel}>{label}</div>
       <div style={{ ...s.summaryValue, ...(color ? { color } : {}) }}>{value}</div>
+    </div>
+  );
+}
+
+function SubTabBtn({ label, active, onClick }) {
+  return (
+    <button
+      style={{ ...s.subTabBtn, ...(active ? s.subTabBtnActive : {}) }}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
+}
+
+function RateCard({ label, value, color }) {
+  return (
+    <div style={s.rateCard}>
+      <div style={{ ...s.rateValue, color }}>{value}</div>
+      <div style={s.rateLabel}>{label}</div>
     </div>
   );
 }
@@ -707,6 +810,56 @@ const s = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
     gap: 16, marginBottom: 16,
+  },
+  subTabBar: {
+    display: 'flex',
+    gap: 0,
+    marginBottom: 20,
+    borderBottom: '1.5px solid var(--border)',
+  },
+  subTabBtn: {
+    padding: '8px 18px',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    marginBottom: -1.5,
+    background: 'transparent',
+    fontSize: 14,
+    fontWeight: 500,
+    cursor: 'pointer',
+    color: 'var(--text-secondary)',
+    fontFamily: 'inherit',
+    transition: 'all .15s',
+  },
+  subTabBtnActive: {
+    color: 'var(--accent)',
+    fontWeight: 600,
+    borderBottomColor: 'var(--accent)',
+  },
+  rateStrip: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 14,
+    marginBottom: 16,
+  },
+  rateCard: {
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-md)',
+    padding: '20px',
+    boxShadow: 'var(--shadow-sm)',
+    textAlign: 'center',
+  },
+  rateValue: {
+    fontSize: 36,
+    fontWeight: 800,
+    letterSpacing: '-1.5px',
+  },
+  rateLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.6px',
+    color: 'var(--text-secondary)',
+    marginTop: 6,
   },
   toast: {
     position: 'fixed', bottom: 32, left: '50%',

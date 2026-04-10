@@ -45,6 +45,20 @@ const c = {
   empty: { textAlign:'center', padding:'32px 0', color:'var(--text-tertiary)', fontSize:14 },
 };
 
+// ── Shared donut label ───────────────────────────────────────
+const DonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+  if (percent < 0.05) return null;
+  const RADIAN = Math.PI / 180;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 // ── 1. Donut — Card vs Cash ──────────────────────────────────
 export function CardVsCashChart({ expenses }) {
   const cardTotal = expenses.filter(e => e.cardPay === 'Yes').reduce((s,e) => s+e.price, 0);
@@ -53,19 +67,6 @@ export function CardVsCashChart({ expenses }) {
     { name: 'Card', value: cardTotal },
     { name: 'Cash', value: cashTotal },
   ].filter(d => d.value > 0);
-
-  const DonutLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
-    if (percent < 0.05) return null;
-    const RADIAN = Math.PI / 180;
-    const r = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + r * Math.cos(-midAngle * RADIAN);
-    const y = cy + r * Math.sin(-midAngle * RADIAN);
-    return (
-      <text x={x} y={y} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={13} fontWeight={700}>
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
-  };
 
   return (
     <ChartCard title="Card vs Cash" empty={data.length === 0}>
@@ -165,6 +166,145 @@ export function MonthlyTrendChart({ expenses }) {
           <Line type="monotone" dataKey="total" name="Total" stroke="var(--accent)"
                 strokeWidth={2.5} dot={{ r:3, fill:'var(--accent)' }}
                 activeDot={{ r:5 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ── 5. Donut — Expenses by Category ─────────────────────────
+export function ExpensesByCategoryChart({ expenses }) {
+  const map = {};
+  expenses.forEach(e => { if (e.category) map[e.category] = (map[e.category] || 0) + e.price; });
+  const data = Object.entries(map)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 7);
+
+  return (
+    <ChartCard title="By Category" empty={data.length === 0}>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+               dataKey="value" labelLine={false} label={DonutLabel}>
+            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          </Pie>
+          <Tooltip content={<TooltipBox />} />
+          <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ── 6. Donut — Fixed vs Variable ────────────────────────────
+export function FixedVsVariableChart({ expenses }) {
+  const fixedTotal    = expenses.filter(e => e.costType === 'fixed').reduce((s, e) => s + e.price, 0);
+  const variableTotal = expenses.filter(e => e.costType !== 'fixed').reduce((s, e) => s + e.price, 0);
+  const data = [
+    { name: 'Fixed',    value: fixedTotal },
+    { name: 'Variable', value: variableTotal },
+  ].filter(d => d.value > 0);
+
+  return (
+    <ChartCard title="Fixed vs Variable" empty={data.length === 0}>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+               dataKey="value" labelLine={false} label={DonutLabel}>
+            {data.map((_, i) => <Cell key={i} fill={[COLORS[0], COLORS[2]][i]} />)}
+          </Pie>
+          <Tooltip content={<TooltipBox />} />
+          <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 13 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ── 7. Donut — Income Breakdown ──────────────────────────────
+export function IncomeBreakdownChart({ income, totalExp, totalSav }) {
+  const remaining = Math.max(income - totalExp - totalSav, 0);
+  const data = [
+    { name: 'Expenses',  value: totalExp },
+    { name: 'Savings',   value: totalSav },
+    { name: 'Remaining', value: remaining },
+  ].filter(d => d.value > 0);
+
+  const SLICE_COLORS = ['var(--danger)', 'var(--success)', 'var(--accent)'];
+
+  return (
+    <ChartCard title="Income Breakdown" empty={income <= 0 || data.length === 0}>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+               dataKey="value" labelLine={false} label={DonutLabel}>
+            {data.map((_, i) => <Cell key={i} fill={SLICE_COLORS[i]} />)}
+          </Pie>
+          <Tooltip content={<TooltipBox />} />
+          <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 13 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ── 8. Donut — Savings by Category ──────────────────────────
+export function SavingsByCategoryChart({ savings }) {
+  const map = {};
+  savings.forEach(sv => { if (sv.category) map[sv.category] = (map[sv.category] || 0) + sv.price; });
+  const data = Object.entries(map)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  return (
+    <ChartCard title="Savings by Category" empty={data.length === 0}>
+      <ResponsiveContainer width="100%" height={200}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
+               dataKey="value" labelLine={false} label={DonutLabel}>
+            {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          </Pie>
+          <Tooltip content={<TooltipBox />} />
+          <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+        </PieChart>
+      </ResponsiveContainer>
+    </ChartCard>
+  );
+}
+
+// ── 9. Line — Savings Trend (12 months) ─────────────────────
+export function SavingsTrendChart({ savings }) {
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth() });
+  }
+
+  const data = months.map(m => {
+    const total = savings
+      .filter(sv => {
+        const [y, mo] = sv.date.split('-');
+        return parseInt(y) === m.year && parseInt(mo) - 1 === m.month;
+      })
+      .reduce((s, sv) => s + sv.price, 0);
+    return { name: `${MONTH_SHORT[m.month]} ${String(m.year).slice(2)}`, total };
+  });
+
+  const hasData = data.some(d => d.total > 0);
+
+  return (
+    <ChartCard title="Savings Trend (12 months)" empty={!hasData}>
+      <ResponsiveContainer width="100%" height={200}>
+        <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+          <YAxis hide />
+          <Tooltip content={<TooltipBox />} />
+          <Line type="monotone" dataKey="total" name="Savings" stroke="var(--savings)"
+                strokeWidth={2.5} dot={{ r: 3, fill: 'var(--savings)' }}
+                activeDot={{ r: 5 }} />
         </LineChart>
       </ResponsiveContainer>
     </ChartCard>

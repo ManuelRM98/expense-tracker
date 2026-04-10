@@ -12,12 +12,16 @@ export default function BudgetCards({
   totalSavings,
   onSaveOverride,
   onClearOverride,
+  variant = 'all', // 'all' | 'expenses' | 'savings'
 }) {
   if (!income || income <= 0) return null;
 
   const fixedLimit    = Math.round(income * budget.fixedPct    / 100);
   const variableLimit = Math.round(income * budget.variablePct / 100);
   const savingsLimit  = Math.round(income * budget.savingsPct  / 100);
+
+  const showExpenses = variant === 'all' || variant === 'expenses';
+  const showSavings  = variant === 'all' || variant === 'savings';
 
   return (
     <div style={s.wrap}>
@@ -26,37 +30,45 @@ export default function BudgetCards({
         {budget.isOverride && <span style={s.overrideBadge}>Month override</span>}
       </div>
       <div style={s.grid}>
-        <BudgetCard
-          title="Fixed expenses"
-          limit={fixedLimit}
-          used={totalFixed}
-          pct={budget.fixedPct}
-          color="var(--accent)"
-          invertGood={false}
-        />
-        <BudgetCard
-          title="Variable expenses"
-          limit={variableLimit}
-          used={totalVariable}
-          pct={budget.variablePct}
-          color="var(--warning)"
-          invertGood={false}
-        />
-        <BudgetCard
-          title="Savings"
-          limit={savingsLimit}
-          used={totalSavings}
-          pct={budget.savingsPct}
-          color="var(--success)"
-          invertGood={true}
-        />
+        {showExpenses && (
+          <BudgetCard
+            title="Fixed expenses"
+            limit={fixedLimit}
+            used={totalFixed}
+            pct={budget.fixedPct}
+            color="var(--accent)"
+            invertGood={false}
+          />
+        )}
+        {showExpenses && (
+          <BudgetCard
+            title="Variable expenses"
+            limit={variableLimit}
+            used={totalVariable}
+            pct={budget.variablePct}
+            color="var(--warning)"
+            invertGood={false}
+          />
+        )}
+        {showSavings && (
+          <BudgetCard
+            title="Savings"
+            limit={savingsLimit}
+            used={totalSavings}
+            pct={budget.savingsPct}
+            color="var(--success)"
+            invertGood={true}
+          />
+        )}
       </div>
 
-      <OverridePanel
-        budget={budget}
-        onSaveOverride={onSaveOverride}
-        onClearOverride={onClearOverride}
-      />
+      {showExpenses && (
+        <OverridePanel
+          budget={budget}
+          onSaveOverride={onSaveOverride}
+          onClearOverride={onClearOverride}
+        />
+      )}
     </div>
   );
 }
