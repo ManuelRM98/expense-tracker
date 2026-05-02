@@ -76,22 +76,32 @@ def remove_saving_category(name: str, db: Session = Depends(get_db)):
 
 # ── Card types ─────────────────────────────────────────────────────────────────
 
-@router.get("/cards", response_model=list[str])
+@router.get("/cards", response_model=list[schemas.CardOut])
 def get_card_types(db: Session = Depends(get_db)):
-    return [r.name for r in db.query(models.CardType).all()]
+    return db.query(models.CardType).all()
 
 
-@router.post("/cards", response_model=list[str], status_code=status.HTTP_201_CREATED)
-def add_card_type(payload: schemas.CategoryCreate, db: Session = Depends(get_db)):
+@router.post("/cards", response_model=list[schemas.CardOut], status_code=status.HTTP_201_CREATED)
+def add_card_type(payload: schemas.CardCreate, db: Session = Depends(get_db)):
     existing = db.query(models.CardType).filter(models.CardType.name == payload.name).first()
     if existing:
         raise HTTPException(status_code=409, detail="Card type already exists")
-    db.add(models.CardType(name=payload.name))
+    db.add(models.CardType(name=payload.name, cut_off_day=payload.cut_off_day))
     db.commit()
-    return [r.name for r in db.query(models.CardType).all()]
+    return db.query(models.CardType).all()
 
 
-@router.delete("/cards/{name}", response_model=list[str])
+@router.patch("/cards/{name}", response_model=list[schemas.CardOut])
+def update_card_cut_off(name: str, payload: schemas.CardCutOffUpdate, db: Session = Depends(get_db)):
+    row = db.query(models.CardType).filter(models.CardType.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Card type not found")
+    row.cut_off_day = payload.cut_off_day
+    db.commit()
+    return db.query(models.CardType).all()
+
+
+@router.delete("/cards/{name}", response_model=list[schemas.CardOut])
 def remove_card_type(name: str, db: Session = Depends(get_db)):
     count = db.query(models.CardType).count()
     if count <= MIN_ITEMS:
@@ -101,4 +111,4 @@ def remove_card_type(name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Card type not found")
     db.delete(row)
     db.commit()
-    return [r.name for r in db.query(models.CardType).all()]
+    return db.query(models.CardType).all()

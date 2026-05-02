@@ -10,10 +10,11 @@ class Expense(Base):
     desc      = Column(String,  nullable=False)
     category  = Column(String,  nullable=False)
     price     = Column(Integer, nullable=False)          # Colombian pesos, integer
-    card_pay  = Column(String,  nullable=False)          # "Yes" | "No"
-    who_paid  = Column(String,  nullable=False)
-    card_type = Column(String,  nullable=False, default="")  # empty when card_pay="No"
-    cost_type = Column(String,  nullable=False, default="variable")  # "fixed" | "variable"
+    card_pay      = Column(String,  nullable=False)          # "Yes" | "No"
+    who_paid      = Column(String,  nullable=False)
+    card_type     = Column(String,  nullable=False, default="")  # empty when card_pay="No"
+    cost_type     = Column(String,  nullable=False, default="variable")  # "fixed" | "variable"
+    billing_month = Column(String,  nullable=True)           # "YYYY-MM"; None = use date
 
 
 class Saving(Base):
@@ -86,7 +87,8 @@ class SavingCategory(Base):
 class CardType(Base):
     __tablename__ = "card_types"
 
-    name = Column(String, primary_key=True)
+    name        = Column(String,  primary_key=True)
+    cut_off_day = Column(Integer, nullable=True)   # 1-31; None = no cut-off logic
 
 
 class MonthBudget(Base):

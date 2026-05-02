@@ -13,6 +13,7 @@ import SavingModal from './components/SavingModal';
 import SavingTable from './components/SavingTable';
 import FixedExpensesPage from './components/FixedExpensesPage';
 import SettingsPage from './components/SettingsPage';
+import CardsSettingsPage from './components/CardsSettingsPage';
 import GlobalSalaryPage from './components/GlobalSalaryPage';
 import BudgetAllocationPage from './components/BudgetAllocationPage';
 import BudgetCards from './components/BudgetCards';
@@ -50,7 +51,7 @@ function parseMonthFromPath(path) {
 export default function App() {
   const {
     expenses, cardTypes, expenseCategories,
-    addExpense, bulkAddExpenses, updateExpense, deleteExpense, addCardType, removeCardType, addExpenseCategory, removeExpenseCategory,
+    addExpense, bulkAddExpenses, updateExpense, deleteExpense, addCardType, removeCardType, updateCardCutOff, addExpenseCategory, removeExpenseCategory,
     savings, savingCategories,
     addSaving, updateSaving, deleteSaving, addSavingCategory, removeSavingCategory,
     incomeEntries, baseSalary, saveBaseSalary,
@@ -86,6 +87,7 @@ export default function App() {
     : pathParts[0] === 'settings' && pathParts[1] === 'fixed-expenses'    ? 'permanentFixed'
     : pathParts[0] === 'settings' && pathParts[1] === 'salary'            ? 'globalSalary'
     : pathParts[0] === 'settings' && pathParts[1] === 'budget'            ? 'budgetAllocation'
+    : pathParts[0] === 'settings' && pathParts[1] === 'cards'             ? 'cards'
     : pathParts[0] === 'settings'                                          ? 'settings'
     : 'home';
 
@@ -142,7 +144,8 @@ export default function App() {
   // ── Month filter ─────────────────────────────────────────
   const monthExpenses = useMemo(() =>
     expenses.filter(e => {
-      const [y, m] = e.date.split('-');
+      const key = e.billingMonth ?? e.date.substring(0, 7);
+      const [y, m] = key.split('-');
       return parseInt(y) === viewYear && parseInt(m) - 1 === viewMonth;
     }),
   [expenses, viewYear, viewMonth]);
@@ -317,6 +320,18 @@ export default function App() {
               onOpenPermanent={() => navigate('/settings/fixed-expenses')}
               onOpenGlobalSalary={() => navigate('/settings/salary')}
               onOpenBudgetAllocation={() => navigate('/settings/budget')}
+              onOpenCards={() => navigate('/settings/cards')}
+            />
+          )}
+
+          {/* ── Cards Settings ── */}
+          {view === 'cards' && (
+            <CardsSettingsPage
+              cardTypes={cardTypes}
+              onAddCard={addCardType}
+              onRemoveCard={removeCardType}
+              onUpdateCardCutOff={updateCardCutOff}
+              onBack={() => navigate('/settings')}
             />
           )}
 

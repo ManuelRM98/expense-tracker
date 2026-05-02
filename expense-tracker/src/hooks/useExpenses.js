@@ -66,6 +66,11 @@ export function useExpenses() {
     setCardTypes(types);
   }, []);
 
+  const updateCardCutOff = useCallback(async (name, cutOffDay) => {
+    const types = await api.updateCardCutOff(name, cutOffDay);
+    setCardTypes(types);
+  }, []);
+
   // ── Expense categories ─────────────────────────────────────────────────────
 
   const addExpenseCategory = useCallback(async (name) => {
@@ -207,7 +212,7 @@ export function useExpenses() {
   return {
     expenses, cardTypes, expenseCategories,
     addExpense, bulkAddExpenses, updateExpense, deleteExpense,
-    addCardType, removeCardType, addExpenseCategory, removeExpenseCategory,
+    addCardType, removeCardType, updateCardCutOff, addExpenseCategory, removeExpenseCategory,
     savings, savingCategories,
     addSaving, updateSaving, deleteSaving, addSavingCategory, removeSavingCategory,
     incomeEntries, baseSalary,

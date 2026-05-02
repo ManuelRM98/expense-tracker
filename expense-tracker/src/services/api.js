@@ -18,28 +18,37 @@ async function request(method, path, body = null) {
 
 function toExpense(d) {
   return {
-    id:       d.id,
-    date:     d.date,
-    desc:     d.desc,
-    category: d.category,
-    price:    d.price,
-    cardPay:  d.card_pay,
-    whoPaid:  d.who_paid,
-    cardType: d.card_type,
-    costType: d.cost_type,
+    id:           d.id,
+    date:         d.date,
+    desc:         d.desc,
+    category:     d.category,
+    price:        d.price,
+    cardPay:      d.card_pay,
+    whoPaid:      d.who_paid,
+    cardType:     d.card_type,
+    costType:     d.cost_type,
+    billingMonth: d.billing_month ?? null,
   };
 }
 
 function fromExpense(d) {
   return {
-    date:      d.date,
-    desc:      d.desc,
-    category:  d.category,
-    price:     d.price,
-    card_pay:  d.cardPay,
-    who_paid:  d.whoPaid,
-    card_type: d.cardType,
-    cost_type: d.costType,
+    date:          d.date,
+    desc:          d.desc,
+    category:      d.category,
+    price:         d.price,
+    card_pay:      d.cardPay,
+    who_paid:      d.whoPaid,
+    card_type:     d.cardType,
+    cost_type:     d.costType,
+    billing_month: d.billingMonth ?? null,
+  };
+}
+
+function toCard(d) {
+  return {
+    name:       d.name,
+    cutOffDay:  d.cut_off_day ?? null,
   };
 }
 
@@ -227,15 +236,23 @@ export async function removeSavingCategory(name) {
 // ── Card types ─────────────────────────────────────────────────────────────────
 
 export async function getCardTypes() {
-  return request('GET', '/cards');
+  const data = await request('GET', '/cards');
+  return data.map(toCard);
 }
 
 export async function addCardType(name) {
-  return request('POST', '/cards', { name });
+  const data = await request('POST', '/cards', { name, cut_off_day: null });
+  return data.map(toCard);
 }
 
 export async function removeCardType(name) {
-  return request('DELETE', `/cards/${encodeURIComponent(name)}`);
+  const data = await request('DELETE', `/cards/${encodeURIComponent(name)}`);
+  return data.map(toCard);
+}
+
+export async function updateCardCutOff(name, cutOffDay) {
+  const data = await request('PATCH', `/cards/${encodeURIComponent(name)}`, { cut_off_day: cutOffDay });
+  return data.map(toCard);
 }
 
 // ── Fixed expense templates ────────────────────────────────────────────────────

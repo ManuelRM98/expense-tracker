@@ -29,6 +29,22 @@ def seed_defaults():
     finally:
         db.close()
 
+# ── Migrate existing DB: add new columns if they don't exist yet ───────────────
+from sqlalchemy import text
+
+def run_migrations():
+    with engine.connect() as conn:
+        for sql in [
+            "ALTER TABLE card_types ADD COLUMN cut_off_day INTEGER",
+            "ALTER TABLE expenses ADD COLUMN billing_month VARCHAR",
+        ]:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
+
+run_migrations()
 seed_defaults()
 
 # ── App ────────────────────────────────────────────────────────────────────────
@@ -42,7 +58,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "http://localhost:5174",   # Vite uses next available port if 5173 is taken
+        "http://localhost:5174",
+        "http://localhost:5175",   # Vite uses next available port if 5173/5174 are taken
     ],
     allow_methods=["*"],
     allow_headers=["*"],

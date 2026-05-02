@@ -1,4 +1,4 @@
-export default function SettingsPage({ onOpenPermanent, onOpenGlobalSalary, onOpenBudgetAllocation, darkMode, onToggleDark }) {
+export default function SettingsPage({ onOpenPermanent, onOpenGlobalSalary, onOpenBudgetAllocation, onOpenCards, darkMode, onToggleDark }) {
   return (
     <div style={s.page}>
       <div style={s.header}>
@@ -37,6 +37,26 @@ export default function SettingsPage({ onOpenPermanent, onOpenGlobalSalary, onOp
             <div>
               <div style={s.rowTitle}>Budget Allocation</div>
               <div style={s.rowSub}>Set 50/30/20 rule and monthly overrides</div>
+            </div>
+          </div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>
+            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+          </svg>
+        </button>
+
+        <div style={s.divider} />
+
+        {/* Cards */}
+        <button style={s.row} onClick={onOpenCards}>
+          <div style={s.rowLeft}>
+            <span style={s.iconWrap}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
+              </svg>
+            </span>
+            <div>
+              <div style={s.rowTitle}>Cards</div>
+              <div style={s.rowSub}>Configure cut-off dates per card</div>
             </div>
           </div>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>

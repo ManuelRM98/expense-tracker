@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from uuid import uuid4
 
 import models
@@ -24,8 +25,12 @@ def get_expenses(month: str | None = None, db: Session = Depends(get_db)):
     """
     q = db.query(models.Expense)
     if month:
-        # Filter rows whose date starts with "YYYY-MM"
-        q = q.filter(models.Expense.date.like(f"{month}%"))
+        q = q.filter(
+            or_(
+                models.Expense.billing_month == month,
+                (models.Expense.billing_month == None) & models.Expense.date.like(f"{month}%"),
+            )
+        )
     return q.order_by(models.Expense.date.desc()).all()
 
 

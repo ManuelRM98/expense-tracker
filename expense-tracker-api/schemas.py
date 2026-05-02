@@ -6,14 +6,15 @@ from datetime import date
 # ── Expenses ───────────────────────────────────────────────────────────────────
 
 class ExpenseBase(BaseModel):
-    date:      date
-    desc:      str
-    category:  str
-    price:     int   = Field(gt=0, description="Amount in Colombian pesos")
-    card_pay:  Literal["Yes", "No"]
-    who_paid:  str
-    card_type: str   = ""
-    cost_type: Literal["fixed", "variable"] = "variable"
+    date:          date
+    desc:          str
+    category:      str
+    price:         int   = Field(gt=0, description="Amount in Colombian pesos")
+    card_pay:      Literal["Yes", "No"]
+    who_paid:      str
+    card_type:     str   = ""
+    cost_type:     Literal["fixed", "variable"] = "variable"
+    billing_month: str | None = None   # "YYYY-MM"; None = use date for month filtering
 
 class ExpenseCreate(ExpenseBase):
     pass
@@ -125,6 +126,19 @@ class CategoryCreate(BaseModel):
 
 class CategoryOut(BaseModel):
     name: str
+    class Config:
+        from_attributes = True
+
+class CardCreate(BaseModel):
+    name:        str
+    cut_off_day: int | None = None   # 1-31 or None
+
+class CardCutOffUpdate(BaseModel):
+    cut_off_day: int | None = None
+
+class CardOut(BaseModel):
+    name:        str
+    cut_off_day: int | None
     class Config:
         from_attributes = True
 

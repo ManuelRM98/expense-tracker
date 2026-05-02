@@ -1,16 +1,27 @@
 import { useState, useEffect } from 'react';
-import { todayISO } from '../utils/format';
+import { todayISO, MONTH_NAMES } from '../utils/format';
 
 const EMPTY = {
-  date: '',
-  desc: '',
-  category: '',
-  price: '',
-  cardPay: '',
-  whoPaid: '',
-  cardType: '',
-  costType: '',
+  date:         '',
+  desc:         '',
+  category:     '',
+  price:        '',
+  cardPay:      '',
+  whoPaid:      '',
+  cardType:     '',
+  costType:     '',
+  billingMonth: '',
 };
+
+function calcBillingMonth(dateStr, cutOffDay) {
+  if (!dateStr || !cutOffDay) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (d >= cutOffDay) {
+    const next = new Date(y, m, 1); // month is 0-based, m is 1-based → this gives next month
+    return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+  }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
 
 export default function ExpenseModal({
   open, onClose, onSave,
@@ -32,14 +43,15 @@ export default function ExpenseModal({
     if (open) {
       if (editing) {
         setForm({
-          date:     editing.date,
-          desc:     editing.desc,
-          category: editing.category ?? '',
-          price:    Number(editing.price).toLocaleString('es-CO'),
-          cardPay:  editing.cardPay,
-          whoPaid:  editing.whoPaid,
-          cardType: editing.cardType ?? '',
-          costType: editing.costType ?? '',
+          date:         editing.date,
+          desc:         editing.desc,
+          category:     editing.category ?? '',
+          price:        Number(editing.price).toLocaleString('es-CO'),
+          cardPay:      editing.cardPay,
+          whoPaid:      editing.whoPaid,
+          cardType:     editing.cardType ?? '',
+          costType:     editing.costType ?? '',
+          billingMonth: editing.billingMonth ?? '',
         });
       } else {
         setForm({ ...EMPTY, date: todayISO(), costType: defaultCostType ?? '' });
@@ -84,7 +96,20 @@ export default function ExpenseModal({
     e.preventDefault();
     if (!validate()) return;
     const price = parseInt(form.price.replace(/\D/g, ''), 10);
-    onSave({ ...form, price });
+
+    let billingMonth = null;
+    if (form.cardPay === 'Yes' && form.cardType) {
+      const card = cardTypes.find(c => c.name === form.cardType);
+      if (card?.cutOffDay) {
+        billingMonth = calcBillingMonth(form.date, card.cutOffDay) || null;
+      }
+    } else if (form.costType === 'fixed' && form.cardPay === 'No') {
+      const yr = form.date ? parseInt(form.date.substring(0, 4), 10) : new Date().getFullYear();
+      const mo = form.date ? form.date.substring(5, 7) : String(new Date().getMonth() + 1).padStart(2, '0');
+      billingMonth = form.billingMonth || `${yr}-${mo}`;
+    }
+
+    onSave({ ...form, price, billingMonth });
     onClose();
   }
 
@@ -101,6 +126,19 @@ export default function ExpenseModal({
     onRemoveCard(name);
     if (form.cardType === name) set('cardType', '');
   }
+
+  // Card with cut-off: compute the billing month to show as info
+  const selectedCard = form.cardPay === 'Yes' ? cardTypes.find(c => c.name === form.cardType) : null;
+  const cardBillingMonth = selectedCard?.cutOffDay && form.date
+    ? calcBillingMonth(form.date, selectedCard.cutOffDay)
+    : null;
+
+  const txYear  = form.date ? parseInt(form.date.substring(0, 4), 10) : new Date().getFullYear();
+  const txMonth = form.date ? parseInt(form.date.substring(5, 7), 10) : (new Date().getMonth() + 1);
+  const billingYearOptions  = [txYear, txYear + 1, txYear + 2];
+  const billingSelYear  = form.billingMonth ? parseInt(form.billingMonth.substring(0, 4), 10) : txYear;
+  const billingSelMonth = form.billingMonth ? parseInt(form.billingMonth.substring(5, 7), 10) : txMonth;
+  const billingMonthStart = billingSelYear === txYear ? txMonth : 1;
 
   function handleSaveCat() {
     const name = newCat.trim();
@@ -284,14 +322,14 @@ export default function ExpenseModal({
               {managingCards && form.cardPay === 'Yes' ? (
                 <div style={s.pillsWrap}>
                   {cardTypes.map(c => (
-                    <span key={c} style={s.pill}>
-                      {c}
+                    <span key={c.name} style={s.pill}>
+                      {c.name}
                       <button
                         type="button"
                         style={{ ...s.pillDel, ...(cardTypes.length <= 1 ? s.pillDelDisabled : {}) }}
                         disabled={cardTypes.length <= 1}
-                        onClick={() => handleRemoveCard(c)}
-                        title={cardTypes.length <= 1 ? 'Cannot delete the last card' : `Delete "${c}"`}
+                        onClick={() => handleRemoveCard(c.name)}
+                        title={cardTypes.length <= 1 ? 'Cannot delete the last card' : `Delete "${c.name}"`}
                       >&#x2715;</button>
                     </span>
                   ))}
@@ -308,10 +346,16 @@ export default function ExpenseModal({
                     }}
                   >
                     <option value="">Select card…</option>
-                    {cardTypes.map(c => <option key={c} value={c}>{c}</option>)}
+                    {cardTypes.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                     <option value="__add__">+ Add new…</option>
                   </select>
                   {errors.cardType && <span style={s.errMsg}>{errors.cardType}</span>}
+                  {cardBillingMonth && (
+                    <div style={s.billingInfo}>
+                      Cut-off day {selectedCard.cutOffDay} → billed in{' '}
+                      {(() => { const [y,m] = cardBillingMonth.split('-'); return `${MONTH_NAMES[parseInt(m)-1]} ${y}`; })()}
+                    </div>
+                  )}
                   {addingCard && (
                     <div style={s.inlineAdd}>
                       <input
@@ -326,6 +370,39 @@ export default function ExpenseModal({
                 </>
               )}
             </div>
+
+            {/* Billing Month — only for fixed expenses paid without card */}
+            {form.costType === 'fixed' && form.cardPay === 'No' && (
+              <div style={{ ...s.group, ...s.full }}>
+                <label style={s.label}>Billing Month</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select
+                    style={s.select}
+                    value={billingSelYear}
+                    onChange={e => {
+                      const newYear = parseInt(e.target.value, 10);
+                      const newStart = newYear === txYear ? txMonth : 1;
+                      const safeMonth = billingSelMonth >= newStart ? billingSelMonth : newStart;
+                      set('billingMonth', `${newYear}-${String(safeMonth).padStart(2, '0')}`);
+                    }}
+                  >
+                    {billingYearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  <select
+                    style={s.select}
+                    value={billingSelMonth}
+                    onChange={e => set('billingMonth', `${billingSelYear}-${String(e.target.value).padStart(2, '0')}`)}
+                  >
+                    {Array.from({ length: 13 - billingMonthStart }, (_, i) => billingMonthStart + i).map(m => (
+                      <option key={m} value={m}>{MONTH_NAMES[m - 1]}</option>
+                    ))}
+                  </select>
+                </div>
+                <span style={s.hint}>
+                  The month this expense will be billed.
+                </span>
+              </div>
+            )}
           </div>
 
           <div style={s.actions}>
@@ -433,5 +510,13 @@ const s = {
   },
   segmentBtnActive: {
     background: 'var(--accent)', color: '#fff', fontWeight: 600,
+  },
+  billingInfo: {
+    marginTop: 6, fontSize: 12, fontWeight: 500,
+    color: 'var(--accent)', background: 'var(--accent-light)',
+    borderRadius: 'var(--radius-sm)', padding: '5px 10px', display: 'inline-block',
+  },
+  hint: {
+    fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2,
   },
 };

@@ -272,14 +272,14 @@ export default function PermanentExpenseModal({
               {managingCards && form.cardPay === 'Yes' ? (
                 <div style={s.pillsWrap}>
                   {cardTypes.map(c => (
-                    <span key={c} style={s.pill}>
-                      {c}
+                    <span key={c.name} style={s.pill}>
+                      {c.name}
                       <button
                         type="button"
                         style={{ ...s.pillDel, ...(cardTypes.length <= 1 ? s.pillDelDisabled : {}) }}
                         disabled={cardTypes.length <= 1}
-                        onClick={() => handleRemoveCard(c)}
-                        title={cardTypes.length <= 1 ? 'Cannot delete the last card' : `Delete "${c}"`}
+                        onClick={() => handleRemoveCard(c.name)}
+                        title={cardTypes.length <= 1 ? 'Cannot delete the last card' : `Delete "${c.name}"`}
                       >&#x2715;</button>
                     </span>
                   ))}
@@ -296,7 +296,7 @@ export default function PermanentExpenseModal({
                     }}
                   >
                     <option value="">Select card…</option>
-                    {cardTypes.map(c => <option key={c} value={c}>{c}</option>)}
+                    {cardTypes.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
                     <option value="__add__">+ Add new…</option>
                   </select>
                   {errors.cardType && <span style={s.errMsg}>{errors.cardType}</span>}
