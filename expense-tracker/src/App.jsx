@@ -37,7 +37,7 @@ export default function App() {
     addExpense, bulkAddExpenses, updateExpense, deleteExpense, addCardType, removeCardType, addExpenseCategory, removeExpenseCategory,
     savings, savingCategories,
     addSaving, updateSaving, deleteSaving, addSavingCategory, removeSavingCategory,
-    baseSalary, saveBaseSalary,
+    incomeEntries, baseSalary, saveBaseSalary,
     getIncome, getIncomeEntries,
     addIncomeEntry, updateIncomeEntry, deleteIncomeEntry,
     ensureSalaryForMonth,
@@ -335,7 +335,10 @@ export default function App() {
             <BudgetAllocationPage
               defaultBudget={defaultBudget}
               baseSalary={baseSalary}
-              onSaveDefault={saveDefaultBudget}
+              onSaveDefault={(pcts) => {
+                const knownMonthKeys = [...new Set(incomeEntries.map(e => e.monthKey))];
+                return saveDefaultBudget(pcts, knownMonthKeys);
+              }}
               onBack={() => setView('settings')}
             />
           </div>

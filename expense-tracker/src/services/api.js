@@ -289,6 +289,11 @@ function fromBudget(d) {
   };
 }
 
+export async function getAllBudgetOverrides() {
+  const data = await request('GET', '/budget/overrides');
+  return data.map(toBudget);
+}
+
 export async function getDefaultBudget() {
   const data = await request('GET', '/budget/default');
   return toBudget(data);

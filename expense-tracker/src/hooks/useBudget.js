@@ -10,8 +10,16 @@ export function useBudget() {
   const [budgetLoaded,    setBudgetLoaded]     = useState(false);
 
   useEffect(() => {
-    api.getDefaultBudget()
-      .then(b => setDefaultBudget(b))
+    Promise.all([
+      api.getDefaultBudget(),
+      api.getAllBudgetOverrides(),
+    ])
+      .then(([def, overrides]) => {
+        setDefaultBudget(def);
+        const map = {};
+        overrides.forEach(o => { map[o.monthKey] = o; });
+        setMonthOverrides(map);
+      })
       .catch(() => {})
       .finally(() => setBudgetLoaded(true));
   }, []);
@@ -21,12 +29,36 @@ export function useBudget() {
     return monthOverrides[monthKey] ?? defaultBudget;
   }, [monthOverrides, defaultBudget]);
 
-  /** Saves new global default percentages. */
-  const saveDefaultBudget = useCallback(async (pcts) => {
+  /** Saves new global default percentages. Past months without an override are
+   *  snapshotted at the current default before it changes, mirroring salary behavior. */
+  const saveDefaultBudget = useCallback(async (pcts, knownMonthKeys = []) => {
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    const pastMonthsToSnapshot = knownMonthKeys.filter(
+      mk => mk < currentMonthKey && !monthOverrides[mk]
+    );
+
+    if (pastMonthsToSnapshot.length > 0) {
+      const snapPcts = {
+        fixedPct:    defaultBudget.fixedPct,
+        variablePct: defaultBudget.variablePct,
+        savingsPct:  defaultBudget.savingsPct,
+      };
+      await Promise.all(pastMonthsToSnapshot.map(mk => api.setMonthBudget(mk, snapPcts)));
+      setMonthOverrides(prev => {
+        const next = { ...prev };
+        pastMonthsToSnapshot.forEach(mk => {
+          next[mk] = { monthKey: mk, ...snapPcts, isOverride: true };
+        });
+        return next;
+      });
+    }
+
     const saved = await api.setDefaultBudget(pcts);
     setDefaultBudget(saved);
     return saved;
-  }, []);
+  }, [defaultBudget, monthOverrides]);
 
   /** Saves a monthly override. */
   const saveMonthBudget = useCallback(async (monthKey, pcts) => {

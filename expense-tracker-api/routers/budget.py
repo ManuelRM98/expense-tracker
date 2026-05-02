@@ -32,6 +32,13 @@ def _get_default(db: Session) -> schemas.MonthBudgetOut:
     )
 
 
+@router.get("/overrides", response_model=list[schemas.MonthBudgetOut])
+def get_all_overrides(db: Session = Depends(get_db)):
+    """Returns all per-month budget overrides (excludes the global default row)."""
+    rows = db.query(models.MonthBudget).filter(models.MonthBudget.month_key != DEFAULT_KEY).all()
+    return [_row_to_out(row) for row in rows]
+
+
 @router.get("/default", response_model=schemas.MonthBudgetOut)
 def get_default_budget(db: Session = Depends(get_db)):
     """Returns the global default budget percentages."""
