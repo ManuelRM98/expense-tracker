@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useExpenses } from './hooks/useExpenses';
 import { useFixedExpenses } from './hooks/useFixedExpenses';
 import { useBudget } from './hooks/useBudget';
@@ -31,6 +32,21 @@ import {
 
 const now = new Date();
 
+const MONTH_URL_NAMES = [
+  'january','february','march','april','may','june',
+  'july','august','september','october','november','december',
+];
+
+function parseMonthFromPath(path) {
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length >= 2 && !isNaN(parseInt(parts[0]))) {
+    const y = parseInt(parts[0]);
+    const m = MONTH_URL_NAMES.indexOf(parts[1].toLowerCase());
+    if (!isNaN(y) && m !== -1) return { year: y, month: m };
+  }
+  return { year: now.getFullYear(), month: now.getMonth() };
+}
+
 export default function App() {
   const {
     expenses, cardTypes, expenseCategories,
@@ -58,8 +74,25 @@ export default function App() {
     loadMonthBudget,
   } = useBudget();
 
-  const [viewYear,  setViewYear]  = useState(now.getFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive current view from URL path
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const isMonthPath = pathParts.length >= 2
+    && !isNaN(parseInt(pathParts[0]))
+    && MONTH_URL_NAMES.includes(pathParts[1]?.toLowerCase());
+  const view = isMonthPath                                                  ? 'month'
+    : pathParts[0] === 'settings' && pathParts[1] === 'fixed-expenses'    ? 'permanentFixed'
+    : pathParts[0] === 'settings' && pathParts[1] === 'salary'            ? 'globalSalary'
+    : pathParts[0] === 'settings' && pathParts[1] === 'budget'            ? 'budgetAllocation'
+    : pathParts[0] === 'settings'                                          ? 'settings'
+    : 'home';
+
+  // Initialize from URL so there's no flash on first load when deep-linking
+  const initialMonth = parseMonthFromPath(location.pathname);
+  const [viewYear,  setViewYear]  = useState(initialMonth.year);
+  const [viewMonth, setViewMonth] = useState(initialMonth.month);
   const [annualYear, setAnnualYear] = useState(now.getFullYear());
   const [modalOpen, setModalOpen] = useState(false);
   const [editing,   setEditing]   = useState(null);
@@ -71,7 +104,6 @@ export default function App() {
   const [activeTab,    setActiveTab]    = useState('expenses'); // 'expenses' | 'savings' | 'charts'
   const [analyticsTab, setAnalyticsTab] = useState('overview'); // 'overview' | 'expenses' | 'savings'
   const [darkMode,   setDarkMode]  = useState(() => localStorage.getItem('theme') === 'dark');
-  const [view,       setView]      = useState('home'); // 'home' | 'month' | 'permanentFixed' | 'settings' | 'globalSalary' | 'budgetAllocation'
 
   // Income entry modal state
   const [incomeModalOpen,    setIncomeModalOpen]    = useState(false);
@@ -84,6 +116,18 @@ export default function App() {
     document.documentElement.dataset.theme = darkMode ? 'dark' : 'light';
     localStorage.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  // Sync viewYear/viewMonth state when the URL changes (e.g. browser back/forward)
+  useEffect(() => {
+    if (view === 'month') {
+      const y = parseInt(pathParts[0]);
+      const m = MONTH_URL_NAMES.indexOf(pathParts[1]?.toLowerCase());
+      if (!isNaN(y) && m !== -1 && (y !== viewYear || m !== viewMonth)) {
+        setViewYear(y);
+        setViewMonth(m);
+      }
+    }
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Month key ────────────────────────────────────────────
   const monthKey = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
@@ -123,22 +167,23 @@ export default function App() {
 
   // ── Navigation ───────────────────────────────────────────
   function goHome() {
-    setView('home');
+    navigate('/');
   }
 
   function goToMonth(year, month) {
-    setViewYear(year);
-    setViewMonth(month);
-    setView('month');
+    navigate(`/${year}/${MONTH_URL_NAMES[month]}`);
   }
 
   function prevMonth() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
+    const newYear  = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const newMonth = viewMonth === 0 ? 11 : viewMonth - 1;
+    navigate(`/${newYear}/${MONTH_URL_NAMES[newMonth]}`);
   }
+
   function nextMonth() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
+    const newYear  = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const newMonth = viewMonth === 11 ? 0 : viewMonth + 1;
+    navigate(`/${newYear}/${MONTH_URL_NAMES[newMonth]}`);
   }
 
   // ── Confirm dialog helper ────────────────────────────────
@@ -229,184 +274,16 @@ export default function App() {
     ? { label: 'Add Saving', fn: openAddSaving, color: 'var(--savings)' }
     : { label: 'Add Expense', fn: openAdd, color: 'var(--accent)' };
 
-  // ── Shared header + modals ───────────────────────────────
-  const sharedHeader = (
-    <Header
-      onAdd={headerAction.fn}
-      addLabel={headerAction.label}
-      btnColor={headerAction.color}
-      onHome={goHome}
-    />
-  );
-
-  const sharedModals = (
-    <>
-      <ExpenseModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSave}
-        cardTypes={cardTypes}
-        onAddCard={addCardType}
-        onRemoveCard={removeCardType}
-        expenseCategories={expenseCategories}
-        onAddCategory={addExpenseCategory}
-        onRemoveCategory={removeExpenseCategory}
-        editing={editing}
-        defaultCostType={defaultCostType}
-      />
-      <SavingModal
-        open={savingModalOpen}
-        onClose={() => setSavingModalOpen(false)}
-        onSave={handleSaveSaving}
-        cardTypes={cardTypes}
-        onAddCard={addCardType}
-        onRemoveCard={removeCardType}
-        savingCategories={savingCategories}
-        onAddCategory={addSavingCategory}
-        onRemoveCategory={removeSavingCategory}
-        editing={editingSaving}
-      />
-      <IncomeEntryModal
-        open={incomeModalOpen}
-        entry={editingIncomeEntry}
-        monthKey={monthKey}
-        onSave={handleSaveIncome}
-        onClose={() => setIncomeModalOpen(false)}
-      />
-      {toast && <div style={s.toast}>{toast}</div>}
-      <ConfirmDialog
-        open={confirmDialog.open}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        onConfirm={confirmDialog.onConfirm}
-        onCancel={closeConfirm}
-      />
-    </>
-  );
-
-  // ── Settings page ────────────────────────────────────────
-  if (view === 'settings') {
-    return (
-      <>
-        {sharedHeader}
-        <div style={s.layout}>
-          <Sidebar
-            view={view}
-            viewYear={viewYear}
-            viewMonth={viewMonth}
-            onHome={goHome}
-            onSelectMonth={goToMonth}
-            expenses={expenses}
-            savings={savings}
-            onOpenSettings={() => setView('settings')}
-          />
-          <div style={s.content}>
-            <SettingsPage
-              darkMode={darkMode}
-              onToggleDark={() => setDarkMode(d => !d)}
-              onOpenPermanent={() => setView('permanentFixed')}
-              onOpenGlobalSalary={() => setView('globalSalary')}
-              onOpenBudgetAllocation={() => setView('budgetAllocation')}
-            />
-          </div>
-        </div>
-        {sharedModals}
-      </>
-    );
-  }
-
-  // ── Budget Allocation page ───────────────────────────────
-  if (view === 'budgetAllocation') {
-    return (
-      <>
-        {sharedHeader}
-        <div style={s.layout}>
-          <Sidebar
-            view={view}
-            viewYear={viewYear}
-            viewMonth={viewMonth}
-            onHome={goHome}
-            onSelectMonth={goToMonth}
-            expenses={expenses}
-            savings={savings}
-            onOpenSettings={() => setView('settings')}
-          />
-          <div style={s.content}>
-            <BudgetAllocationPage
-              defaultBudget={defaultBudget}
-              baseSalary={baseSalary}
-              onSaveDefault={(pcts) => {
-                const knownMonthKeys = [...new Set(incomeEntries.map(e => e.monthKey))];
-                return saveDefaultBudget(pcts, knownMonthKeys);
-              }}
-              onBack={() => setView('settings')}
-            />
-          </div>
-        </div>
-        {sharedModals}
-      </>
-    );
-  }
-
-  // ── Global Salary page ───────────────────────────────────
-  if (view === 'globalSalary') {
-    return (
-      <>
-        {sharedHeader}
-        <div style={s.layout}>
-          <Sidebar
-            view={view}
-            viewYear={viewYear}
-            viewMonth={viewMonth}
-            onHome={goHome}
-            onSelectMonth={goToMonth}
-            expenses={expenses}
-            savings={savings}
-            onOpenSettings={() => setView('settings')}
-          />
-          <div style={s.content}>
-            <GlobalSalaryPage
-              baseSalary={baseSalary}
-              onSave={saveBaseSalary}
-              onBack={() => setView('settings')}
-            />
-          </div>
-        </div>
-        {sharedModals}
-      </>
-    );
-  }
-
-  // ── Permanent Fixed Costs page ───────────────────────────
-  if (view === 'permanentFixed') {
-    return (
-      <>
-        {sharedHeader}
-        <FixedExpensesPage
-          templates={templates}
-          onAdd={addTemplate}
-          onUpdate={updateTemplate}
-          onDelete={deleteTemplate}
-          onToggle={toggleTemplate}
-          cardTypes={cardTypes}
-          onAddCard={addCardType}
-          onRemoveCard={removeCardType}
-          expenseCategories={expenseCategories}
-          onAddCategory={addExpenseCategory}
-          onRemoveCategory={removeExpenseCategory}
-          onBack={() => setView('settings')}
-        />
-        {sharedModals}
-      </>
-    );
-  }
-
   return (
     <>
-      {sharedHeader}
+      <Header
+        onAdd={headerAction.fn}
+        addLabel={headerAction.label}
+        btnColor={headerAction.color}
+        onHome={goHome}
+      />
 
       <div style={s.layout}>
-        {/* ── Left sidebar ── */}
         <Sidebar
           view={view}
           viewYear={viewYear}
@@ -415,10 +292,9 @@ export default function App() {
           onSelectMonth={goToMonth}
           expenses={expenses}
           savings={savings}
-          onOpenSettings={() => setView('settings')}
+          onOpenSettings={() => navigate('/settings')}
         />
 
-        {/* ── Main content ── */}
         <div style={s.content}>
 
           {/* ── Home / Annual view ── */}
@@ -430,6 +306,57 @@ export default function App() {
               getIncome={getIncome}
               onPrevYear={() => setAnnualYear(y => y - 1)}
               onNextYear={() => setAnnualYear(y => y + 1)}
+            />
+          )}
+
+          {/* ── Settings ── */}
+          {view === 'settings' && (
+            <SettingsPage
+              darkMode={darkMode}
+              onToggleDark={() => setDarkMode(d => !d)}
+              onOpenPermanent={() => navigate('/settings/fixed-expenses')}
+              onOpenGlobalSalary={() => navigate('/settings/salary')}
+              onOpenBudgetAllocation={() => navigate('/settings/budget')}
+            />
+          )}
+
+          {/* ── Budget Allocation ── */}
+          {view === 'budgetAllocation' && (
+            <BudgetAllocationPage
+              defaultBudget={defaultBudget}
+              baseSalary={baseSalary}
+              onSaveDefault={(pcts) => {
+                const knownMonthKeys = [...new Set(incomeEntries.map(e => e.monthKey))];
+                return saveDefaultBudget(pcts, knownMonthKeys);
+              }}
+              onBack={() => navigate('/settings')}
+            />
+          )}
+
+          {/* ── Global Salary ── */}
+          {view === 'globalSalary' && (
+            <GlobalSalaryPage
+              baseSalary={baseSalary}
+              onSave={saveBaseSalary}
+              onBack={() => navigate('/settings')}
+            />
+          )}
+
+          {/* ── Permanent Fixed Costs ── */}
+          {view === 'permanentFixed' && (
+            <FixedExpensesPage
+              templates={templates}
+              onAdd={addTemplate}
+              onUpdate={updateTemplate}
+              onDelete={deleteTemplate}
+              onToggle={toggleTemplate}
+              cardTypes={cardTypes}
+              onAddCard={addCardType}
+              onRemoveCard={removeCardType}
+              expenseCategories={expenseCategories}
+              onAddCategory={addExpenseCategory}
+              onRemoveCategory={removeExpenseCategory}
+              onBack={() => navigate('/settings')}
             />
           )}
 
@@ -619,7 +546,47 @@ export default function App() {
         </div>
       </div>
 
-      {sharedModals}
+      {/* Modals */}
+      <ExpenseModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+        cardTypes={cardTypes}
+        onAddCard={addCardType}
+        onRemoveCard={removeCardType}
+        expenseCategories={expenseCategories}
+        onAddCategory={addExpenseCategory}
+        onRemoveCategory={removeExpenseCategory}
+        editing={editing}
+        defaultCostType={defaultCostType}
+      />
+      <SavingModal
+        open={savingModalOpen}
+        onClose={() => setSavingModalOpen(false)}
+        onSave={handleSaveSaving}
+        cardTypes={cardTypes}
+        onAddCard={addCardType}
+        onRemoveCard={removeCardType}
+        savingCategories={savingCategories}
+        onAddCategory={addSavingCategory}
+        onRemoveCategory={removeSavingCategory}
+        editing={editingSaving}
+      />
+      <IncomeEntryModal
+        open={incomeModalOpen}
+        entry={editingIncomeEntry}
+        monthKey={monthKey}
+        onSave={handleSaveIncome}
+        onClose={() => setIncomeModalOpen(false)}
+      />
+      {toast && <div style={s.toast}>{toast}</div>}
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </>
   );
 }
