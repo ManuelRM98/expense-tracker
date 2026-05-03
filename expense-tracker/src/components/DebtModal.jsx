@@ -80,6 +80,18 @@ export default function DebtModal({ open, onClose, onSave, editing }) {
         <form onSubmit={handleSubmit} noValidate>
           <div style={s.body}>
 
+            {/* Date */}
+            <div style={s.group}>
+              <label style={s.label}>Initial Date</label>
+              <DatePicker
+                value={form.date}
+                onChange={v => set('date', v)}
+                hasError={!!errors.date}
+                accent="var(--accent)"
+              />
+              {errors.date && <span style={s.errMsg}>{errors.date}</span>}
+            </div>
+
             {/* Direction */}
             <div style={s.group}>
               <label style={s.label}>Direction</label>
@@ -145,18 +157,6 @@ export default function DebtModal({ open, onClose, onSave, editing }) {
               {errors.amount && <span style={s.errMsg}>{errors.amount}</span>}
             </div>
 
-            {/* Date */}
-            <div style={s.group}>
-              <label style={s.label}>Initial Date</label>
-              <DatePicker
-                value={form.date}
-                onChange={v => set('date', v)}
-                hasError={!!errors.date}
-                accent="var(--accent)"
-              />
-              {errors.date && <span style={s.errMsg}>{errors.date}</span>}
-            </div>
-
           </div>
 
           <div style={s.footer}>
@@ -172,51 +172,52 @@ export default function DebtModal({ open, onClose, onSave, editing }) {
 const s = {
   overlay: {
     position: 'fixed', inset: 0,
-    background: 'rgba(0,0,0,0.45)',
+    background: 'rgba(0,0,0,0.42)',
+    backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    zIndex: 1000,
+    zIndex: 1000, padding: 20,
   },
   modal: {
     background: 'var(--surface)',
-    borderRadius: 'var(--radius)',
-    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
     width: '100%', maxWidth: 420,
-    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-    overflow: 'hidden',
+    boxShadow: 'var(--shadow-lg)',
+    padding: 28,
+    animation: 'modalIn .22s cubic-bezier(.34,1.56,.64,1)',
   },
   mHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '16px 20px',
-    borderBottom: '1px solid var(--border)',
+    marginBottom: 24,
   },
-  mTitle: { fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' },
+  mTitle: { fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px' },
   closeBtn: {
-    width: 28, height: 28,
+    width: 32, height: 32,
     border: 'none', borderRadius: '50%',
-    background: 'var(--surface-2)',
+    background: 'var(--bg)',
     color: 'var(--text-secondary)',
-    cursor: 'pointer', fontSize: 13,
+    cursor: 'pointer', fontSize: 16,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontFamily: 'inherit',
   },
-  body: { padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 },
-  group: { display: 'flex', flexDirection: 'column', gap: 5 },
-  label: { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' },
+  body: { display: 'flex', flexDirection: 'column', gap: 16 },
+  group: { display: 'flex', flexDirection: 'column', gap: 6 },
+  label: { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' },
   input: {
-    width: '100%', padding: '9px 12px',
+    width: '100%', padding: '11px 14px',
     border: '1.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
     background: 'var(--bg)', color: 'var(--text-primary)',
-    fontSize: 14, fontFamily: 'inherit',
-    boxSizing: 'border-box', outline: 'none',
+    fontSize: 15, fontFamily: 'inherit',
+    outline: 'none',
   },
   inputErr: { borderColor: 'var(--danger)' },
-  errMsg: { fontSize: 11, color: 'var(--danger)', marginTop: 2 },
+  errMsg: { fontSize: 12, color: 'var(--danger)', fontWeight: 500, marginTop: 2 },
   segRow: { display: 'flex', gap: 8 },
   seg: {
-    flex: 1, padding: '9px 12px',
+    flex: 1, padding: '11px 14px',
     border: '1.5px solid var(--border)', borderRadius: 'var(--radius-sm)',
     background: 'var(--bg)', color: 'var(--text-secondary)',
-    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-    transition: 'all 0.12s',
+    fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+    transition: 'all 0.15s',
   },
   segActiveOwed: {
     background: 'rgba(52,199,89,0.12)',
@@ -231,20 +232,20 @@ const s = {
     fontWeight: 600,
   },
   footer: {
-    display: 'flex', gap: 10, justifyContent: 'flex-end',
-    padding: '14px 20px',
-    borderTop: '1px solid var(--border)',
+    display: 'flex', gap: 12,
+    marginTop: 24,
   },
   cancelBtn: {
-    padding: '9px 18px', border: '1.5px solid var(--border)',
-    borderRadius: 'var(--radius-sm)', background: 'transparent',
-    color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500,
+    flex: 1, padding: 13, border: '1.5px solid var(--border)',
+    borderRadius: 'var(--radius-sm)', background: 'var(--surface)',
+    color: 'var(--text-primary)', fontSize: 15, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'inherit',
   },
   saveBtn: {
-    padding: '9px 18px', border: 'none',
+    flex: 2, padding: 13, border: 'none',
     borderRadius: 'var(--radius-sm)', background: 'var(--accent)',
-    color: '#fff', fontSize: 13, fontWeight: 600,
+    color: '#fff', fontSize: 15, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'inherit',
+    boxShadow: '0 4px 12px rgba(139,0,0,.35)',
   },
 };

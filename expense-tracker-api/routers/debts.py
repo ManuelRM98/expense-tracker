@@ -86,6 +86,21 @@ def add_payment(debt_id: str, payload: schemas.DebtPaymentCreate, db: Session = 
     return _build_debt_out(debt, _get_payments(db, debt_id))
 
 
+@router.patch("/{debt_id}/payments/{payment_id}", response_model=schemas.DebtOut)
+def update_payment(debt_id: str, payment_id: str, payload: schemas.DebtPaymentUpdate, db: Session = Depends(get_db)):
+    debt = _get_debt_or_404(db, debt_id)
+    payment = db.query(models.DebtPayment).filter(
+        models.DebtPayment.id == payment_id,
+        models.DebtPayment.debt_id == debt_id,
+    ).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    for field, value in payload.model_dump().items():
+        setattr(payment, field, value)
+    db.commit()
+    return _build_debt_out(debt, _get_payments(db, debt_id))
+
+
 @router.delete("/{debt_id}/payments/{payment_id}", response_model=schemas.DebtOut)
 def delete_payment(debt_id: str, payment_id: str, db: Session = Depends(get_db)):
     debt = _get_debt_or_404(db, debt_id)

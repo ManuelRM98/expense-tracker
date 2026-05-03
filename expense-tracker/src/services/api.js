@@ -415,6 +415,15 @@ export async function addDebtPayment(debtId, data) {
   return toDebt(res);
 }
 
+export async function updateDebtPayment(debtId, paymentId, data) {
+  const res = await request('PATCH', `/debts/${debtId}/payments/${paymentId}`, {
+    amount: data.amount,
+    date:   data.date,
+    note:   data.note ?? '',
+  });
+  return toDebt(res);
+}
+
 export async function deleteDebtPayment(debtId, paymentId) {
   const res = await request('DELETE', `/debts/${debtId}/payments/${paymentId}`);
   return toDebt(res);

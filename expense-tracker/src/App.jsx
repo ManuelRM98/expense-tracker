@@ -70,7 +70,7 @@ export default function App() {
 
   const {
     debts,
-    addDebt, updateDebt, deleteDebt, addPayment, deletePayment,
+    addDebt, updateDebt, deleteDebt, addPayment, updatePayment, deletePayment,
   } = useDebts();
 
   const {
@@ -348,6 +348,7 @@ export default function App() {
               onUpdate={updateDebt}
               onDelete={deleteDebt}
               onAddPayment={addPayment}
+              onUpdatePayment={updatePayment}
               onDeletePayment={deletePayment}
             />
           )}

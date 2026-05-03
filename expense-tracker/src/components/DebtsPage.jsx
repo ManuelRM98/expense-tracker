@@ -4,7 +4,7 @@ import DebtModal from './DebtModal';
 import DebtPaymentModal from './DebtPaymentModal';
 import ConfirmDialog from './ConfirmDialog';
 
-function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onToggleSettle }) {
+function DebtTable({ debts, onEdit, onDelete, onAddPayment, onEditPayment, onDeletePayment, onToggleSettle }) {
   const [expandedId, setExpandedId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
@@ -23,35 +23,41 @@ function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onT
 
   return (
     <>
+      <div style={s.card}>
       <div style={s.tableWrap}>
         <table style={s.table}>
           <thead>
             <tr>
-              {['Person', 'Description', 'Amount', 'Paid', 'Remaining', 'Settled?', 'Initial Date', 'Settlement Date', 'Actions'].map(h => (
-                <th key={h} style={s.th}>{h}</th>
+              {['', 'Initial Date', 'Person', 'Description', 'Amount', 'Paid', 'Remaining', 'Settled?', 'Settlement Date', 'Actions'].map((h, i) => (
+                <th key={i} style={h === '' ? s.thExpand : s.th}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {debts.map(debt => {
               const isExpanded = expandedId === debt.id;
+              const effectivelySettled = debt.isSettled || debt.totalRemaining === 0;
               return (
                 <>
                   <tr
                     key={debt.id}
-                    style={{ ...s.tr, ...(debt.isSettled ? s.trSettled : {}) }}
+                    style={{ ...s.tr, ...(effectivelySettled ? s.trSettled : {}) }}
                   >
+                    <td style={s.tdExpand}>
+                      <button
+                        style={s.expandBtn}
+                        onClick={() => setExpandedId(isExpanded ? null : debt.id)}
+                        title={isExpanded ? 'Hide payments' : 'Show payment history'}
+                      >
+                        {isExpanded
+                          ? <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                          : <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M10 17l5-5-5-5v10z"/></svg>
+                        }
+                      </button>
+                    </td>
+                    <td style={{ ...s.td, ...s.dateCell }}>{fmtDate(debt.createdDate)}</td>
                     <td style={s.td}>
-                      <div style={s.personCell}>
-                        <button
-                          style={s.expandBtn}
-                          onClick={() => setExpandedId(isExpanded ? null : debt.id)}
-                          title={isExpanded ? 'Hide payments' : 'Show payment history'}
-                        >
-                          {isExpanded ? '▾' : '▸'}
-                        </button>
-                        <span style={s.personName}>{debt.person}</span>
-                      </div>
+                      <span style={s.personName}>{debt.person}</span>
                     </td>
                     <td style={s.td}><span style={s.desc}>{debt.description}</span></td>
                     <td style={{ ...s.td, ...s.numCell }}>{fmtCOP(debt.amount)}</td>
@@ -61,27 +67,26 @@ function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onT
                     </td>
                     <td style={{ ...s.td, textAlign: 'center' }}>
                       <button
-                        style={{ ...s.settleToggle, ...(debt.isSettled ? s.settleToggleOn : s.settleToggleOff) }}
+                        style={{ ...s.settleToggle, ...(effectivelySettled ? s.settleToggleOn : s.settleToggleOff) }}
                         onClick={() => onToggleSettle(debt)}
-                        title={debt.isSettled ? 'Mark as pending' : 'Mark as settled'}
+                        title={effectivelySettled ? 'Mark as pending' : 'Mark as settled'}
                       >
-                        {debt.isSettled ? '✓ Settled' : 'Pending'}
+                        {effectivelySettled ? '✓ Settled' : 'Pending'}
                       </button>
                     </td>
-                    <td style={{ ...s.td, ...s.dateCell }}>{fmtDate(debt.createdDate)}</td>
                     <td style={{ ...s.td, ...s.dateCell }}>
                       {debt.settledDate ? fmtDate(debt.settledDate) : <span style={s.dash}>—</span>}
                     </td>
                     <td style={s.td}>
                       <div style={s.actions}>
-                        {!debt.isSettled && (
+                        {!effectivelySettled && (
                           <button
                             style={{ ...s.actionBtn, color: 'var(--success)' }}
                             onClick={() => onAddPayment(debt)}
-                            title="Add payment"
+                            title="Record payment"
                           >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                              <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
                             </svg>
                           </button>
                         )}
@@ -113,7 +118,7 @@ function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onT
 
                   {isExpanded && (
                     <tr key={`${debt.id}-payments`} style={s.expandedRow}>
-                      <td colSpan={9} style={s.expandedCell}>
+                      <td colSpan={10} style={s.expandedCell}>
                         {debt.payments.length === 0 ? (
                           <p style={s.noPayments}>No payments recorded yet.</p>
                         ) : (
@@ -132,19 +137,30 @@ function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onT
                                   <td style={{ ...s.payTd, color: 'var(--success)', fontWeight: 600 }}>{fmtCOP(p.amount)}</td>
                                   <td style={{ ...s.payTd, color: 'var(--text-secondary)' }}>{p.note || <span style={s.dash}>—</span>}</td>
                                   <td style={s.payTd}>
-                                    <button
-                                      style={{ ...s.actionBtn, color: 'var(--danger)' }}
-                                      onClick={() => askConfirm({
-                                        title: 'Delete payment',
-                                        message: 'Remove this payment entry?',
-                                        onConfirm: () => { setConfirmDialog(d => ({ ...d, open: false })); onDeletePayment(debt.id, p.id); },
-                                      })}
-                                      title="Delete payment"
-                                    >
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                                      </svg>
-                                    </button>
+                                    <div style={{ display: 'flex', gap: 4 }}>
+                                      <button
+                                        style={{ ...s.actionBtn, color: 'var(--text-secondary)' }}
+                                        onClick={() => onEditPayment(debt, p)}
+                                        title="Edit payment"
+                                      >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                        </svg>
+                                      </button>
+                                      <button
+                                        style={{ ...s.actionBtn, color: 'var(--danger)' }}
+                                        onClick={() => askConfirm({
+                                          title: 'Delete payment',
+                                          message: 'Remove this payment entry?',
+                                          onConfirm: () => { setConfirmDialog(d => ({ ...d, open: false })); onDeletePayment(debt.id, p.id); },
+                                        })}
+                                        title="Delete payment"
+                                      >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                                        </svg>
+                                      </button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
@@ -160,6 +176,7 @@ function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onT
           </tbody>
         </table>
       </div>
+      </div>
       <ConfirmDialog
         open={confirmDialog.open}
         title={confirmDialog.title}
@@ -171,12 +188,14 @@ function DebtTable({ debts, onEdit, onDelete, onAddPayment, onDeletePayment, onT
   );
 }
 
-export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayment, onDeletePayment }) {
+export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayment, onUpdatePayment, onDeletePayment }) {
   const [activeTab, setActiveTab]           = useState('analytics');
   const [debtModalOpen, setDebtModalOpen]   = useState(false);
   const [editingDebt, setEditingDebt]       = useState(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentTarget, setPaymentTarget]   = useState(null);
+  const [editPaymentOpen, setEditPaymentOpen]   = useState(false);
+  const [editPaymentData, setEditPaymentData]   = useState(null);
 
   const owedToMe  = useMemo(() => debts.filter(d => d.direction === 'they_owe_me'), [debts]);
   const iOwe      = useMemo(() => debts.filter(d => d.direction === 'i_owe_them'), [debts]);
@@ -230,8 +249,27 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
 
   function openAddPayment(debt) { setPaymentTarget(debt); setPaymentModalOpen(true); }
 
-  function handleSavePayment(data) {
-    if (paymentTarget) onAddPayment(paymentTarget.id, data);
+  async function handleSavePayment(data) {
+    if (!paymentTarget) return;
+    const updated = await onAddPayment(paymentTarget.id, data);
+    if (updated && updated.totalRemaining === 0 && !updated.isSettled) {
+      await onUpdate(paymentTarget.id, {
+        person:      updated.person,
+        description: updated.description,
+        amount:      updated.amount,
+        isSettled:   true,
+        settledDate: new Date().toISOString().slice(0, 10),
+      });
+    }
+  }
+
+  function openEditPayment(debt, payment) {
+    setEditPaymentData({ debt, payment });
+    setEditPaymentOpen(true);
+  }
+
+  function handleSaveEditPayment(data) {
+    if (editPaymentData) onUpdatePayment(editPaymentData.debt.id, editPaymentData.payment.id, data);
   }
 
   const tabs = [
@@ -263,22 +301,38 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
       {activeTab === 'analytics' && (
         <div style={s.analytics}>
           <div style={s.summaryRow}>
-            <div style={{ ...s.summaryCard, borderColor: 'var(--success)' }}>
-              <span style={s.summaryLabel}>They owe me</span>
+            <div style={s.summaryCard}>
+              <div style={s.summaryLabelRow}>
+                <span style={s.summaryLabel}>They Owe Me</span>
+                <span style={{ ...s.summaryDot, background: 'var(--success)' }} />
+              </div>
               <span style={{ ...s.summaryValue, color: 'var(--success)' }}>{fmtCOP(totalOwedToMe)}</span>
               <span style={s.summaryCount}>{owedToMe.filter(d => !d.isSettled).length} pending debt{owedToMe.filter(d => !d.isSettled).length !== 1 ? 's' : ''}</span>
             </div>
-            <div style={{ ...s.summaryCard, borderColor: 'var(--danger)' }}>
-              <span style={s.summaryLabel}>I owe</span>
+            <div style={s.summaryCard}>
+              <div style={s.summaryLabelRow}>
+                <span style={s.summaryLabel}>I Owe</span>
+                <span style={{ ...s.summaryDot, background: 'var(--danger)' }} />
+              </div>
               <span style={{ ...s.summaryValue, color: 'var(--danger)' }}>{fmtCOP(totalIOwe)}</span>
               <span style={s.summaryCount}>{iOwe.filter(d => !d.isSettled).length} pending debt{iOwe.filter(d => !d.isSettled).length !== 1 ? 's' : ''}</span>
+            </div>
+            <div style={s.summaryCard}>
+              <div style={s.summaryLabelRow}>
+                <span style={s.summaryLabel}>Net Balance</span>
+                <span style={{ ...s.summaryDot, background: totalOwedToMe >= totalIOwe ? 'var(--success)' : 'var(--danger)' }} />
+              </div>
+              <span style={{ ...s.summaryValue, color: totalOwedToMe >= totalIOwe ? 'var(--success)' : 'var(--danger)' }}>
+                {fmtCOP(totalOwedToMe - totalIOwe)}
+              </span>
+              <span style={s.summaryCount}>{totalOwedToMe >= totalIOwe ? 'in your favor' : 'you owe more'}</span>
             </div>
           </div>
 
           <div style={s.breakdownRow}>
             {byPersonOwed.length > 0 && (
               <div style={s.breakdown}>
-                <h3 style={s.breakdownTitle}>Who owes me</h3>
+                <h3 style={s.breakdownTitle}>Who Owes Me</h3>
                 {byPersonOwed.map(([person, total]) => (
                   <div key={person} style={s.breakdownItem}>
                     <span style={s.breakdownPerson}>{person}</span>
@@ -289,7 +343,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
             )}
             {byPersonOwe.length > 0 && (
               <div style={s.breakdown}>
-                <h3 style={s.breakdownTitle}>Who I owe</h3>
+                <h3 style={s.breakdownTitle}>Who I Owe</h3>
                 {byPersonOwe.map(([person, total]) => (
                   <div key={person} style={s.breakdownItem}>
                     <span style={s.breakdownPerson}>{person}</span>
@@ -312,6 +366,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
           onEdit={openEditDebt}
           onDelete={onDelete}
           onAddPayment={openAddPayment}
+          onEditPayment={openEditPayment}
           onDeletePayment={onDeletePayment}
           onToggleSettle={handleToggleSettle}
         />
@@ -324,6 +379,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
           onEdit={openEditDebt}
           onDelete={onDelete}
           onAddPayment={openAddPayment}
+          onEditPayment={openEditPayment}
           onDeletePayment={onDeletePayment}
           onToggleSettle={handleToggleSettle}
         />
@@ -341,6 +397,14 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
         onClose={() => setPaymentModalOpen(false)}
         onSave={handleSavePayment}
         debt={paymentTarget}
+      />
+
+      <DebtPaymentModal
+        open={editPaymentOpen}
+        onClose={() => setEditPaymentOpen(false)}
+        onSave={handleSaveEditPayment}
+        debt={editPaymentData?.debt}
+        editing={editPaymentData?.payment}
       />
     </main>
   );
@@ -374,36 +438,53 @@ const s = {
     borderBottom: '2px solid var(--accent)',
     background: 'var(--accent-light)',
   },
-  analytics: { display: 'flex', flexDirection: 'column', gap: 24 },
-  summaryRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
+  analytics: { display: 'flex', flexDirection: 'column', gap: 20 },
+  summaryRow: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+    gap: 14,
+  },
   summaryCard: {
-    flex: 1, minWidth: 200,
     background: 'var(--surface)',
-    border: '1.5px solid',
-    borderRadius: 'var(--radius)',
-    padding: '20px 24px',
+    borderRadius: 'var(--radius-md)',
+    padding: '18px 20px',
+    boxShadow: 'var(--shadow-sm)',
     display: 'flex', flexDirection: 'column', gap: 6,
   },
-  summaryLabel: { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' },
-  summaryValue: { fontSize: 26, fontWeight: 700 },
+  summaryLabelRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  summaryDot: { width: 8, height: 8, borderRadius: '50%', flexShrink: 0 },
+  summaryLabel: { fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.6px' },
+  summaryValue: { fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' },
   summaryCount: { fontSize: 12, color: 'var(--text-tertiary)' },
-  breakdownRow: { display: 'flex', gap: 20, flexWrap: 'wrap' },
+  breakdownRow: { display: 'flex', gap: 16, flexWrap: 'wrap' },
   breakdown: {
     flex: 1, minWidth: 220,
     background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
+    borderRadius: 'var(--radius-md)',
+    boxShadow: 'var(--shadow-sm)',
     padding: '16px 20px',
     display: 'flex', flexDirection: 'column', gap: 10,
   },
-  breakdownTitle: { fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: 4 },
-  breakdownItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  breakdownPerson: { fontSize: 14, color: 'var(--text-primary)' },
-  breakdownAmt: { fontSize: 14, fontWeight: 600 },
+  breakdownTitle: {
+    fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)',
+    margin: 0, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.6px',
+  },
+  breakdownItem: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '6px 0', borderBottom: '1px solid var(--border)',
+  },
+  breakdownPerson: { fontSize: 14, fontWeight: 500, color: 'var(--text-primary)' },
+  breakdownAmt: { fontSize: 14, fontWeight: 700, letterSpacing: '-0.3px' },
+  card: {
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-md)',
+    boxShadow: 'var(--shadow-sm)',
+    overflow: 'hidden',
+  },
   tableWrap: { overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
   th: {
-    padding: '10px 12px', textAlign: 'left',
+    padding: '10px 16px', textAlign: 'left',
     background: 'var(--surface-2)', color: 'var(--text-secondary)',
     fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
     borderBottom: '1px solid var(--border)',
@@ -414,16 +495,23 @@ const s = {
     transition: 'background 0.1s',
   },
   trSettled: { opacity: 0.5 },
-  td: { padding: '10px 12px', color: 'var(--text-primary)', verticalAlign: 'middle' },
+  td: { padding: '12px 16px', fontSize: 14, color: 'var(--text-primary)', verticalAlign: 'middle' },
   numCell: { textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 500 },
   dateCell: { whiteSpace: 'nowrap', color: 'var(--text-secondary)', fontSize: 12 },
-  personCell: { display: 'flex', alignItems: 'center', gap: 6 },
+  thExpand: { padding: '10px 8px', width: 36, background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' },
+  tdExpand: { padding: '12px 8px', textAlign: 'center', verticalAlign: 'middle' },
   expandBtn: {
-    width: 20, height: 20,
-    border: 'none', background: 'transparent',
-    color: 'var(--text-tertiary)', cursor: 'pointer',
-    fontSize: 12, padding: 0, fontFamily: 'inherit',
+    width: 26, height: 26,
+    flexShrink: 0,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
+    border: '1.5px solid var(--border)',
+    borderRadius: '50%',
+    background: 'var(--bg)',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    padding: 0,
+    fontFamily: 'inherit',
+    lineHeight: 1,
   },
   personName: { fontWeight: 600 },
   desc: { color: 'var(--text-secondary)' },

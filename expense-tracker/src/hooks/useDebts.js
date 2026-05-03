@@ -31,11 +31,17 @@ export function useDebts() {
     return updated;
   }, []);
 
+  const updatePayment = useCallback(async (debtId, paymentId, data) => {
+    const updated = await api.updateDebtPayment(debtId, paymentId, data);
+    setDebts(prev => prev.map(d => d.id === debtId ? updated : d));
+    return updated;
+  }, []);
+
   const deletePayment = useCallback(async (debtId, paymentId) => {
     const updated = await api.deleteDebtPayment(debtId, paymentId);
     setDebts(prev => prev.map(d => d.id === debtId ? updated : d));
     return updated;
   }, []);
 
-  return { debts, addDebt, updateDebt, deleteDebt, addPayment, deletePayment };
+  return { debts, addDebt, updateDebt, deleteDebt, addPayment, updatePayment, deletePayment };
 }

@@ -189,6 +189,11 @@ class DebtPaymentCreate(BaseModel):
     date:    date
     note:    str  = ""
 
+class DebtPaymentUpdate(BaseModel):
+    amount:  int  = Field(gt=0)
+    date:    date
+    note:    str  = ""
+
 class DebtPaymentOut(BaseModel):
     id:      str
     debt_id: str

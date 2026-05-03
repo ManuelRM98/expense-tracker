@@ -2,16 +2,24 @@ import { useState, useEffect } from 'react';
 import { todayISO, fmtCOP } from '../utils/format';
 import DatePicker from './DatePicker';
 
-export default function DebtPaymentModal({ open, onClose, onSave, debt }) {
+export default function DebtPaymentModal({ open, onClose, onSave, debt, editing }) {
   const [form, setForm]     = useState({ amount: '', date: todayISO(), note: '' });
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (open) {
-      setForm({ amount: '', date: todayISO(), note: '' });
+      if (editing) {
+        setForm({
+          amount: Number(editing.amount).toLocaleString('es-CO'),
+          date:   editing.date,
+          note:   editing.note || '',
+        });
+      } else {
+        setForm({ amount: '', date: todayISO(), note: '' });
+      }
       setErrors({});
     }
-  }, [open]);
+  }, [open, editing]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -53,7 +61,7 @@ export default function DebtPaymentModal({ open, onClose, onSave, debt }) {
     <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={s.modal} role="dialog" aria-modal="true">
         <div style={s.mHeader}>
-          <span style={s.mTitle}>Add Payment</span>
+          <span style={s.mTitle}>{editing ? 'Edit Payment' : 'Add Payment'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>
         </div>
 
@@ -112,7 +120,7 @@ export default function DebtPaymentModal({ open, onClose, onSave, debt }) {
 
           <div style={s.footer}>
             <button type="button" style={s.cancelBtn} onClick={onClose}>Cancel</button>
-            <button type="submit" style={s.saveBtn}>Add Payment</button>
+            <button type="submit" style={s.saveBtn}>{editing ? 'Save Changes' : 'Add Payment'}</button>
           </div>
         </form>
       </div>
