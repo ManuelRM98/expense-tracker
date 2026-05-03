@@ -334,3 +334,88 @@ export async function setMonthBudget(monthKey, pcts) {
 export async function deleteMonthBudget(monthKey) {
   await request('DELETE', `/budget/${monthKey}`);
 }
+
+// ── Debts ──────────────────────────────────────────────────────────────────────
+
+function toDebtPayment(d) {
+  return {
+    id:     d.id,
+    debtId: d.debt_id,
+    amount: d.amount,
+    date:   d.date,
+    note:   d.note,
+  };
+}
+
+function toDebt(d) {
+  return {
+    id:              d.id,
+    direction:       d.direction,
+    person:          d.person,
+    description:     d.description,
+    amount:          d.amount,
+    linkedExpenseId: d.linked_expense_id ?? null,
+    isSettled:       d.is_settled,
+    createdDate:     d.created_date,
+    settledDate:     d.settled_date ?? null,
+    payments:        (d.payments ?? []).map(toDebtPayment),
+    totalPaid:       d.total_paid,
+    totalRemaining:  d.total_remaining,
+  };
+}
+
+function fromDebtCreate(d) {
+  return {
+    direction:         d.direction,
+    person:            d.person,
+    description:       d.description,
+    amount:            d.amount,
+    linked_expense_id: d.linkedExpenseId ?? null,
+    created_date:      d.createdDate,
+    is_settled:        d.isSettled ?? false,
+    settled_date:      d.settledDate ?? null,
+  };
+}
+
+function fromDebtUpdate(d) {
+  return {
+    person:       d.person,
+    description:  d.description,
+    amount:       d.amount,
+    is_settled:   d.isSettled,
+    settled_date: d.settledDate ?? null,
+  };
+}
+
+export async function getDebts() {
+  const data = await request('GET', '/debts');
+  return data.map(toDebt);
+}
+
+export async function createDebt(data) {
+  const res = await request('POST', '/debts', fromDebtCreate(data));
+  return toDebt(res);
+}
+
+export async function updateDebt(id, data) {
+  const res = await request('PUT', `/debts/${id}`, fromDebtUpdate(data));
+  return toDebt(res);
+}
+
+export async function deleteDebt(id) {
+  await request('DELETE', `/debts/${id}`);
+}
+
+export async function addDebtPayment(debtId, data) {
+  const res = await request('POST', `/debts/${debtId}/payments`, {
+    amount: data.amount,
+    date:   data.date,
+    note:   data.note ?? '',
+  });
+  return toDebt(res);
+}
+
+export async function deleteDebtPayment(debtId, paymentId) {
+  const res = await request('DELETE', `/debts/${debtId}/payments/${paymentId}`);
+  return toDebt(res);
+}

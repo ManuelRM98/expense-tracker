@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 from datetime import date
 
 
@@ -180,6 +180,54 @@ class TrendPoint(BaseModel):
     month_key:      str
     total_expenses: int
     total_savings:  int
+
+
+# ── Debts ──────────────────────────────────────────────────────────────────────
+
+class DebtPaymentCreate(BaseModel):
+    amount:  int  = Field(gt=0)
+    date:    date
+    note:    str  = ""
+
+class DebtPaymentOut(BaseModel):
+    id:      str
+    debt_id: str
+    amount:  int
+    date:    date
+    note:    str
+    class Config:
+        from_attributes = True
+
+class DebtCreate(BaseModel):
+    direction:         Literal["they_owe_me", "i_owe_them"]
+    person:            str
+    description:       str
+    amount:            int  = Field(gt=0)
+    linked_expense_id: Optional[str] = None
+    created_date:      date
+    is_settled:        bool = False
+    settled_date:      Optional[date] = None
+
+class DebtUpdate(BaseModel):
+    person:       str
+    description:  str
+    amount:       int  = Field(gt=0)
+    is_settled:   bool
+    settled_date: Optional[date] = None
+
+class DebtOut(BaseModel):
+    id:                str
+    direction:         str
+    person:            str
+    description:       str
+    amount:            int
+    linked_expense_id: Optional[str]
+    is_settled:        bool
+    created_date:      date
+    settled_date:      Optional[date]
+    payments:          list[DebtPaymentOut]
+    total_paid:        int
+    total_remaining:   int
 
 
 # ── Month Budget ───────────────────────────────────────────────────────────────

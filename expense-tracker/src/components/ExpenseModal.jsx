@@ -40,6 +40,8 @@ export default function ExpenseModal({
   const [newCat, setNewCat]         = useState('');
   const [managingCats, setManagingCats] = useState(false);
   const [errors, setErrors]         = useState({});
+  const [debtEntries, setDebtEntries]   = useState([]);
+  const [debtSectionOpen, setDebtSectionOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -73,6 +75,7 @@ export default function ExpenseModal({
       setErrors({});
       setAddingCard(false); setNewCard(''); setManagingCards(false);
       setAddingCat(false);  setNewCat('');  setManagingCats(false);
+      setDebtEntries([]);   setDebtSectionOpen(false);
     }
   }, [open, editing, cloning, defaultCostType]);
 
@@ -123,7 +126,8 @@ export default function ExpenseModal({
       billingMonth = form.billingMonth || `${yr}-${mo}`;
     }
 
-    onSave({ ...form, price, billingMonth });
+    const validDebts = debtEntries.filter(d => d.person.trim() && d.direction && d.amount);
+    onSave({ ...form, price, billingMonth, debtEntries: validDebts });
     onClose();
   }
 
@@ -419,6 +423,70 @@ export default function ExpenseModal({
             )}
           </div>
 
+          {/* Debt Entries */}
+          <div style={s.debtSection}>
+            <button
+              type="button"
+              style={s.debtToggle}
+              onClick={() => setDebtSectionOpen(o => !o)}
+            >
+              <span>{debtSectionOpen ? '▾' : '▸'}</span>
+              <span>Add debt from this expense</span>
+              {debtEntries.length > 0 && (
+                <span style={s.debtBadge}>{debtEntries.length}</span>
+              )}
+            </button>
+
+            {debtSectionOpen && (
+              <div style={s.debtBody}>
+                {debtEntries.map((entry, idx) => (
+                  <div key={idx} style={s.debtRow}>
+                    <input
+                      type="text"
+                      placeholder="Person"
+                      style={{ ...s.debtInput, flex: '1 1 100px' }}
+                      value={entry.person}
+                      onChange={e => setDebtEntries(prev => prev.map((d, i) => i === idx ? { ...d, person: e.target.value } : d))}
+                    />
+                    <select
+                      style={{ ...s.debtSelect, flex: '1 1 130px' }}
+                      value={entry.direction}
+                      onChange={e => setDebtEntries(prev => prev.map((d, i) => i === idx ? { ...d, direction: e.target.value } : d))}
+                    >
+                      <option value="">Direction…</option>
+                      <option value="they_owe_me">They owe me</option>
+                      <option value="i_owe_them">I owe them</option>
+                    </select>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="Amount"
+                      style={{ ...s.debtInput, flex: '1 1 90px' }}
+                      value={entry.amount}
+                      onChange={e => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        const val = digits ? parseInt(digits, 10).toLocaleString('es-CO') : '';
+                        setDebtEntries(prev => prev.map((d, i) => i === idx ? { ...d, amount: val } : d));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      style={s.debtRemoveBtn}
+                      onClick={() => setDebtEntries(prev => prev.filter((_, i) => i !== idx))}
+                    >&#x2715;</button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  style={s.debtAddEntryBtn}
+                  onClick={() => setDebtEntries(prev => [...prev, { person: '', direction: '', amount: '' }])}
+                >
+                  + Add person
+                </button>
+              </div>
+            )}
+          </div>
+
           <div style={s.actions}>
             <button type="button" style={s.cancelBtn} onClick={onClose}>Cancel</button>
             <button type="submit" style={s.saveBtn}>
@@ -532,5 +600,59 @@ const s = {
   },
   hint: {
     fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2,
+  },
+  debtSection: {
+    marginTop: 20,
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
+    overflow: 'hidden',
+  },
+  debtToggle: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+    padding: '10px 14px', border: 'none',
+    background: 'var(--surface-2)', color: 'var(--text-secondary)',
+    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+    textAlign: 'left',
+  },
+  debtBadge: {
+    marginLeft: 'auto',
+    minWidth: 18, height: 18,
+    borderRadius: 9, background: 'var(--accent)',
+    color: '#fff', fontSize: 11, fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '0 5px',
+  },
+  debtBody: {
+    padding: '12px 14px',
+    display: 'flex', flexDirection: 'column', gap: 8,
+    borderTop: '1px solid var(--border)',
+  },
+  debtRow: { display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' },
+  debtInput: {
+    fontFamily: 'inherit', fontSize: 13,
+    background: 'var(--bg)', border: '1.5px solid var(--border)',
+    borderRadius: 'var(--radius-sm)', padding: '8px 10px',
+    color: 'var(--text-primary)', outline: 'none',
+    minWidth: 80,
+  },
+  debtSelect: {
+    fontFamily: 'inherit', fontSize: 13,
+    background: 'var(--bg)', border: '1.5px solid var(--border)',
+    borderRadius: 'var(--radius-sm)', padding: '8px 10px',
+    color: 'var(--text-primary)', outline: 'none',
+    minWidth: 120,
+  },
+  debtRemoveBtn: {
+    width: 26, height: 26, border: 'none',
+    borderRadius: '50%', background: 'var(--surface-2)',
+    color: 'var(--danger)', cursor: 'pointer', fontSize: 12,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  debtAddEntryBtn: {
+    alignSelf: 'flex-start', padding: '6px 12px',
+    border: '1.5px dashed var(--border)', borderRadius: 'var(--radius-sm)',
+    background: 'transparent', color: 'var(--accent)',
+    fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
   },
 };

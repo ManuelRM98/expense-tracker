@@ -38,6 +38,7 @@ export function useExpenses() {
   const addExpense = useCallback(async (data) => {
     const created = await api.createExpense(data);
     setExpenses(prev => [...prev, created]);
+    return created;
   }, []);
 
   const bulkAddExpenses = useCallback((completedExpenses) => {

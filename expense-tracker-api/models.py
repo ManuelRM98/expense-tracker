@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, Date
+from sqlalchemy import Column, String, Integer, Boolean, Date, ForeignKey
 from database import Base
 
 
@@ -99,3 +99,27 @@ class MonthBudget(Base):
     fixed_pct    = Column(Integer, nullable=False)      # 0-100
     variable_pct = Column(Integer, nullable=False)
     savings_pct  = Column(Integer, nullable=False)
+
+
+class Debt(Base):
+    __tablename__ = "debts"
+
+    id                 = Column(String,  primary_key=True, index=True)
+    direction          = Column(String,  nullable=False)              # "they_owe_me" | "i_owe_them"
+    person             = Column(String,  nullable=False)
+    description        = Column(String,  nullable=False)
+    amount             = Column(Integer, nullable=False)              # original debt amount in COP
+    linked_expense_id  = Column(String,  nullable=True)               # optional FK to expenses.id
+    is_settled         = Column(Boolean, nullable=False, default=False)
+    created_date       = Column(Date,    nullable=False)
+    settled_date       = Column(Date,    nullable=True)
+
+
+class DebtPayment(Base):
+    __tablename__ = "debt_payments"
+
+    id       = Column(String,  primary_key=True, index=True)
+    debt_id  = Column(String,  ForeignKey("debts.id", ondelete="CASCADE"), nullable=False, index=True)
+    amount   = Column(Integer, nullable=False)
+    date     = Column(Date,    nullable=False)
+    note     = Column(String,  nullable=False, default="")

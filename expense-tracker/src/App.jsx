@@ -19,6 +19,8 @@ import BudgetAllocationPage from './components/BudgetAllocationPage';
 import BudgetCards from './components/BudgetCards';
 import IncomeEntryModal from './components/IncomeEntryModal';
 import ConfirmDialog from './components/ConfirmDialog';
+import DebtsPage from './components/DebtsPage';
+import { useDebts } from './hooks/useDebts';
 import {
   CardVsCashChart,
   ByCardTypeChart,
@@ -67,6 +69,11 @@ export default function App() {
   } = useFixedExpenses();
 
   const {
+    debts,
+    addDebt, updateDebt, deleteDebt, addPayment, deletePayment,
+  } = useDebts();
+
+  const {
     defaultBudget,
     getBudgetForMonth,
     saveDefaultBudget,
@@ -89,6 +96,7 @@ export default function App() {
     : pathParts[0] === 'settings' && pathParts[1] === 'budget'            ? 'budgetAllocation'
     : pathParts[0] === 'settings' && pathParts[1] === 'cards'             ? 'cards'
     : pathParts[0] === 'settings'                                          ? 'settings'
+    : pathParts[0] === 'debts'                                             ? 'debts'
     : 'home';
 
   // Initialize from URL so there's no flash on first load when deep-linking
@@ -213,13 +221,28 @@ export default function App() {
   function openEdit(exp) { setDefaultCostType(''); setEditing(exp); setCloning(null); setModalOpen(true); }
   function openCloneExpense(exp) { setDefaultCostType(''); setEditing(null); setCloning(exp); setModalOpen(true); }
 
-  function handleSave(data) {
+  async function handleSave({ debtEntries, ...data }) {
+    let expenseId;
     if (editing) {
-      updateExpense(editing.id, data);
+      await updateExpense(editing.id, data);
+      expenseId = editing.id;
       showToast('Expense updated.');
     } else {
-      addExpense(data);
+      const created = await addExpense(data);
+      expenseId = created?.id;
       showToast('Expense added.');
+    }
+    if (debtEntries?.length > 0 && expenseId) {
+      for (const entry of debtEntries) {
+        await addDebt({
+          direction:       entry.direction,
+          person:          entry.person,
+          description:     data.desc,
+          amount:          parseInt(String(entry.amount).replace(/\D/g, ''), 10),
+          linkedExpenseId: expenseId,
+          createdDate:     data.date,
+        });
+      }
     }
   }
 
@@ -300,6 +323,7 @@ export default function App() {
           expenses={expenses}
           savings={savings}
           onOpenSettings={() => navigate('/settings')}
+          onOpenDebts={() => navigate('/debts')}
         />
 
         <div style={s.content}>
@@ -313,6 +337,18 @@ export default function App() {
               getIncome={getIncome}
               onPrevYear={() => setAnnualYear(y => y - 1)}
               onNextYear={() => setAnnualYear(y => y + 1)}
+            />
+          )}
+
+          {/* ── Debts ── */}
+          {view === 'debts' && (
+            <DebtsPage
+              debts={debts}
+              onAdd={addDebt}
+              onUpdate={updateDebt}
+              onDelete={deleteDebt}
+              onAddPayment={addPayment}
+              onDeletePayment={deletePayment}
             />
           )}
 
