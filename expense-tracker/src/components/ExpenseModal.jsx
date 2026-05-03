@@ -29,6 +29,7 @@ export default function ExpenseModal({
   cardTypes, onAddCard, onRemoveCard,
   expenseCategories, onAddCategory, onRemoveCategory,
   editing,
+  cloning,
   defaultCostType, // pre-selects 'fixed' or 'variable' when opening for a new expense
 }) {
   const [form, setForm]             = useState(EMPTY);
@@ -54,6 +55,18 @@ export default function ExpenseModal({
           costType:     editing.costType ?? '',
           billingMonth: editing.billingMonth ?? '',
         });
+      } else if (cloning) {
+        setForm({
+          date:         todayISO(),
+          desc:         cloning.desc,
+          category:     cloning.category ?? '',
+          price:        Number(cloning.price).toLocaleString('es-CO'),
+          cardPay:      cloning.cardPay,
+          whoPaid:      cloning.whoPaid,
+          cardType:     cloning.cardType ?? '',
+          costType:     cloning.costType ?? '',
+          billingMonth: cloning.billingMonth ?? '',
+        });
       } else {
         setForm({ ...EMPTY, date: todayISO(), costType: defaultCostType ?? '', whoPaid: 'Me' });
       }
@@ -61,7 +74,7 @@ export default function ExpenseModal({
       setAddingCard(false); setNewCard(''); setManagingCards(false);
       setAddingCat(false);  setNewCat('');  setManagingCats(false);
     }
-  }, [open, editing, defaultCostType]);
+  }, [open, editing, cloning, defaultCostType]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -161,7 +174,7 @@ export default function ExpenseModal({
     <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={s.modal} role="dialog" aria-modal="true">
         <div style={s.mHeader}>
-          <span style={s.mTitle}>{editing ? 'Edit Expense' : 'Add Expense'}</span>
+          <span style={s.mTitle}>{editing ? 'Edit Expense' : cloning ? 'Duplicate Expense' : 'Add Expense'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>
         </div>
 
@@ -409,7 +422,7 @@ export default function ExpenseModal({
           <div style={s.actions}>
             <button type="button" style={s.cancelBtn} onClick={onClose}>Cancel</button>
             <button type="submit" style={s.saveBtn}>
-              {editing ? 'Save Changes' : 'Save Expense'}
+              {editing ? 'Save Changes' : cloning ? 'Save Copy' : 'Save Expense'}
             </button>
           </div>
         </form>

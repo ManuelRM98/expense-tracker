@@ -98,9 +98,11 @@ export default function App() {
   const [annualYear, setAnnualYear] = useState(now.getFullYear());
   const [modalOpen, setModalOpen] = useState(false);
   const [editing,   setEditing]   = useState(null);
+  const [cloning,   setCloning]   = useState(null);
   const [defaultCostType, setDefaultCostType] = useState('');
   const [savingModalOpen, setSavingModalOpen] = useState(false);
   const [editingSaving,   setEditingSaving]   = useState(null);
+  const [cloningsSaving,  setCloningsSaving]  = useState(null);
   const [toast,      setToast]     = useState('');
   const [toastTimer, setToastTimer] = useState(null);
   const [activeTab,    setActiveTab]    = useState('expenses'); // 'expenses' | 'savings' | 'charts'
@@ -206,9 +208,10 @@ export default function App() {
   }
 
   // ── Expense CRUD ─────────────────────────────────────────
-  function openAdd(costType = '') { setDefaultCostType(costType); setEditing(null); setModalOpen(true); }
+  function openAdd(costType = '') { setDefaultCostType(costType); setEditing(null); setCloning(null); setModalOpen(true); }
   function openAddFixed() { openAdd('fixed'); }
-  function openEdit(exp) { setDefaultCostType(''); setEditing(exp); setModalOpen(true); }
+  function openEdit(exp) { setDefaultCostType(''); setEditing(exp); setCloning(null); setModalOpen(true); }
+  function openCloneExpense(exp) { setDefaultCostType(''); setEditing(null); setCloning(exp); setModalOpen(true); }
 
   function handleSave(data) {
     if (editing) {
@@ -229,8 +232,9 @@ export default function App() {
   }
 
   // ── Saving CRUD ──────────────────────────────────────────
-  function openAddSaving() { setEditingSaving(null); setSavingModalOpen(true); }
-  function openEditSaving(sv) { setEditingSaving(sv); setSavingModalOpen(true); }
+  function openAddSaving() { setEditingSaving(null); setCloningsSaving(null); setSavingModalOpen(true); }
+  function openEditSaving(sv) { setEditingSaving(sv); setCloningsSaving(null); setSavingModalOpen(true); }
+  function openCloneSaving(sv) { setEditingSaving(null); setCloningsSaving(sv); setSavingModalOpen(true); }
 
   function handleSaveSaving(data) {
     if (editingSaving) {
@@ -479,6 +483,7 @@ export default function App() {
                     expenses={monthExpenses}
                     onEdit={openEdit}
                     onDelete={handleDelete}
+                    onClone={openCloneExpense}
                     onAddFixed={openAddFixed}
                     onAddVariable={() => openAdd('variable')}
                   />
@@ -502,6 +507,7 @@ export default function App() {
                     savings={monthSavings}
                     onEdit={openEditSaving}
                     onDelete={handleDeleteSaving}
+                    onClone={openCloneSaving}
                     onAdd={openAddSaving}
                   />
                 </>
@@ -564,7 +570,7 @@ export default function App() {
       {/* Modals */}
       <ExpenseModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setCloning(null); }}
         onSave={handleSave}
         cardTypes={cardTypes}
         onAddCard={addCardType}
@@ -573,11 +579,12 @@ export default function App() {
         onAddCategory={addExpenseCategory}
         onRemoveCategory={removeExpenseCategory}
         editing={editing}
+        cloning={cloning}
         defaultCostType={defaultCostType}
       />
       <SavingModal
         open={savingModalOpen}
-        onClose={() => setSavingModalOpen(false)}
+        onClose={() => { setSavingModalOpen(false); setCloningsSaving(null); }}
         onSave={handleSaveSaving}
         cardTypes={cardTypes}
         onAddCard={addCardType}
@@ -586,6 +593,7 @@ export default function App() {
         onAddCategory={addSavingCategory}
         onRemoveCategory={removeSavingCategory}
         editing={editingSaving}
+        cloning={cloningsSaving}
       />
       <IncomeEntryModal
         open={incomeModalOpen}

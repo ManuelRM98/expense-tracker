@@ -3,7 +3,7 @@ import { fmtCOP, fmtDate } from '../utils/format';
 
 const COLS = ['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', 'Who Paid', ''];
 
-export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, onAddVariable }) {
+export default function ExpenseTable({ expenses, onEdit, onDelete, onClone, onAddFixed, onAddVariable }) {
   const [activeTab, setActiveTab] = useState('Variable');
 
   if (expenses.length === 0) {
@@ -64,6 +64,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, o
             total={variableTotal}
             onEdit={onEdit}
             onDelete={onDelete}
+            onClone={onClone}
             onAdd={onAddVariable}
           />
         )}
@@ -75,6 +76,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, o
             total={fixedTotal}
             onEdit={onEdit}
             onDelete={onDelete}
+            onClone={onClone}
             onAdd={onAddFixed}
           />
         )}
@@ -83,7 +85,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, o
   );
 }
 
-function Section({ title, color, expenses, total, onEdit, onDelete, onAdd }) {
+function Section({ title, color, expenses, total, onEdit, onDelete, onClone, onAdd }) {
   return (
     <div style={s.section}>
       <div style={s.sectionHeader}>
@@ -142,6 +144,11 @@ function Section({ title, color, expenses, total, onEdit, onDelete, onAdd }) {
                     <button style={s.iconBtn} title="Edit" onClick={() => onEdit(e)}>
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                      </svg>
+                    </button>
+                    <button style={{ ...s.iconBtn, ...s.iconClone }} title="Duplicate" onClick={() => onClone(e)}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
                       </svg>
                     </button>
                     <button style={{ ...s.iconBtn, ...s.iconDel }} title="Delete" onClick={() => onDelete(e.id)}>
@@ -249,5 +256,6 @@ const s = {
     background:'none', border:'none', cursor:'pointer', padding:6,
     borderRadius:8, color:'var(--text-tertiary)', display:'inline-flex',
   },
+  iconClone: { color: 'var(--accent)' },
   iconDel: { color: 'var(--danger)' },
 };

@@ -17,6 +17,7 @@ export default function SavingModal({
   cardTypes, onAddCard, onRemoveCard,
   savingCategories, onAddCategory, onRemoveCategory,
   editing,
+  cloning,
 }) {
   const [form, setForm]             = useState(EMPTY);
   const [addingCard, setAddingCard] = useState(false);
@@ -39,6 +40,16 @@ export default function SavingModal({
           whoPaid:  editing.whoPaid ?? '',
           cardType: editing.cardType ?? '',
         });
+      } else if (cloning) {
+        setForm({
+          date:     todayISO(),
+          desc:     cloning.desc,
+          category: cloning.category ?? '',
+          price:    Number(cloning.price).toLocaleString('es-CO'),
+          cardPay:  cloning.cardPay,
+          whoPaid:  cloning.whoPaid ?? '',
+          cardType: cloning.cardType ?? '',
+        });
       } else {
         setForm({ ...EMPTY, date: todayISO(), whoPaid: 'Me' });
       }
@@ -46,7 +57,7 @@ export default function SavingModal({
       setAddingCard(false); setNewCard(''); setManagingCards(false);
       setAddingCat(false);  setNewCat('');  setManagingCats(false);
     }
-  }, [open, editing]);
+  }, [open, editing, cloning]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -119,7 +130,7 @@ export default function SavingModal({
     <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={s.modal} role="dialog" aria-modal="true">
         <div style={s.mHeader}>
-          <span style={s.mTitle}>{editing ? 'Edit Saving' : 'Add Saving'}</span>
+          <span style={s.mTitle}>{editing ? 'Edit Saving' : cloning ? 'Duplicate Saving' : 'Add Saving'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>
         </div>
 
@@ -306,7 +317,7 @@ export default function SavingModal({
           <div style={s.actions}>
             <button type="button" style={s.cancelBtn} onClick={onClose}>Cancel</button>
             <button type="submit" style={s.saveBtn}>
-              {editing ? 'Save Changes' : 'Save Saving'}
+              {editing ? 'Save Changes' : cloning ? 'Save Copy' : 'Save Saving'}
             </button>
           </div>
         </form>
