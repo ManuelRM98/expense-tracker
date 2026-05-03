@@ -26,9 +26,9 @@ import {
   MonthlyTrendChart,
   ExpensesByCategoryChart,
   FixedVsVariableChart,
-  IncomeBreakdownChart,
   SavingsByCategoryChart,
   SavingsTrendChart,
+  CreditCardBreakdownChart,
 } from './components/Charts';
 
 const now = new Date();
@@ -453,18 +453,44 @@ export default function App() {
                 )}
               </div>
 
-              {/* Summary cards */}
-              <div style={s.summaryRow}>
-                <SummaryCard label="Total Expenses"  value={fmtCOP(totalExp)} color="var(--danger)" />
-                <SummaryCard label="Total Savings"   value={fmtCOP(totalSav)} color="var(--savings)" />
-                <SummaryCard label="Paid by Card"    value={fmtCOP(cardTotal)} color="var(--accent)" />
-                <SummaryCard label="Cash / Other"    value={fmtCOP(cashTotal)} color="var(--warning)" />
-                <SummaryCard
-                  label="Remaining"
-                  value={income > 0 ? fmtCOP(remaining) : '—'}
-                  color={income > 0 ? (remaining >= 0 ? 'var(--success)' : 'var(--danger)') : undefined}
-                />
-              </div>
+              {/* Summary cards — contextual per tab */}
+              {activeTab === 'expenses' && (
+                <div style={s.summaryRow}>
+                  <SummaryCard label="Total Expenses" value={fmtCOP(totalExp)} color="var(--danger)" />
+                  <SummaryCard label="Fixed"          value={fmtCOP(totalFixed)} color="var(--warning)" />
+                  <SummaryCard label="Variable"       value={fmtCOP(totalVariable)} color="var(--accent)" />
+                  <SummaryCard label="Paid by Card"   value={fmtCOP(cardTotal)} color="var(--accent)" />
+                  <SummaryCard
+                    label="Remaining"
+                    value={income > 0 ? fmtCOP(remaining) : '—'}
+                    color={income > 0 ? (remaining >= 0 ? 'var(--success)' : 'var(--danger)') : undefined}
+                  />
+                </div>
+              )}
+
+              {activeTab === 'savings' && (
+                <div style={s.summaryRow}>
+                  <SummaryCard label="Total Savings" value={fmtCOP(totalSav)} color="var(--savings)" />
+                  <SummaryCard
+                    label="Savings Target"
+                    value={income > 0 && monthBudget?.savingsPct > 0 ? fmtCOP(Math.round(income * monthBudget.savingsPct / 100)) : '—'}
+                    color="var(--text-secondary)"
+                  />
+                  <SummaryCard
+                    label="Remaining"
+                    value={income > 0 ? fmtCOP(remaining) : '—'}
+                    color={income > 0 ? (remaining >= 0 ? 'var(--success)' : 'var(--danger)') : undefined}
+                  />
+                </div>
+              )}
+
+              {activeTab === 'charts' && income > 0 && (
+                <div style={s.rateStrip}>
+                  <RateCard label="Expense Rate" value={`${Math.round((totalExp / income) * 100)}%`} color="var(--danger)" />
+                  <RateCard label="Savings Rate" value={`${Math.round((totalSav / income) * 100)}%`} color="var(--savings)" />
+                  <RateCard label="Free Cash"    value={`${Math.max(0, Math.round(((income - totalExp - totalSav) / income) * 100))}%`} color="var(--accent)" />
+                </div>
+              )}
 
               {/* Expenses tab */}
               {activeTab === 'expenses' && (
@@ -524,15 +550,10 @@ export default function App() {
 
                   {analyticsTab === 'overview' && (
                     <>
-                      {income > 0 && (
-                        <div style={s.rateStrip}>
-                          <RateCard label="Expense Rate" value={`${Math.round((totalExp / income) * 100)}%`} color="var(--danger)" />
-                          <RateCard label="Savings Rate" value={`${Math.round((totalSav / income) * 100)}%`} color="var(--savings)" />
-                          <RateCard label="Free Cash"    value={`${Math.max(0, Math.round(((income - totalExp - totalSav) / income) * 100))}%`} color="var(--accent)" />
-                        </div>
-                      )}
+                      <div style={{ marginBottom: 16 }}>
+                        <CreditCardBreakdownChart expenses={monthExpenses} />
+                      </div>
                       <div style={s.chartsGrid}>
-                        <IncomeBreakdownChart income={income} totalExp={totalExp} totalSav={totalSav} />
                         <MonthlyTrendChart expenses={expenses} />
                       </div>
                     </>

@@ -19,7 +19,10 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onClone, onAd
     );
   }
 
-  const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
+  const sorted = [...expenses].sort((a, b) => {
+    const d = b.date.localeCompare(a.date);
+    return d !== 0 ? d : a.id - b.id;
+  });
   const fixed    = sorted.filter(e => e.costType === 'fixed');
   const variable = sorted.filter(e => e.costType !== 'fixed');
 

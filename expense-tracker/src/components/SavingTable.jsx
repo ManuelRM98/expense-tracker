@@ -3,7 +3,10 @@ import { fmtCOP, fmtDate } from '../utils/format';
 const COLOR = 'var(--savings)';
 
 export default function SavingTable({ savings, onEdit, onDelete, onClone, onAdd }) {
-  const sorted = [...savings].sort((a, b) => b.date.localeCompare(a.date));
+  const sorted = [...savings].sort((a, b) => {
+    const d = b.date.localeCompare(a.date);
+    return d !== 0 ? d : a.id - b.id;
+  });
   const total = savings.reduce((sum, sv) => sum + sv.price, 0);
 
   return (

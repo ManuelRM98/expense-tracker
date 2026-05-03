@@ -273,6 +273,110 @@ export function SavingsByCategoryChart({ savings }) {
   );
 }
 
+// ── 10. Bar list — Credit Cards Due ─────────────────────────
+export function CreditCardBreakdownChart({ expenses }) {
+  const map = {};
+  expenses
+    .filter(e => e.cardPay === 'Yes' && e.cardType)
+    .forEach(e => { map[e.cardType] = (map[e.cardType] || 0) + e.price; });
+
+  const data = Object.entries(map)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const total = data.reduce((s, d) => s + d.value, 0);
+
+  return (
+    <ChartCard title="Credit Cards Due" empty={data.length === 0}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {data.map((card, i) => (
+          <div key={card.name} style={cc.row}>
+            <span style={cc.name}>{card.name}</span>
+            <div style={cc.barBg}>
+              <div style={{
+                ...cc.barFill,
+                width: `${(card.value / data[0].value) * 100}%`,
+                background: COLORS[i % COLORS.length],
+              }} />
+            </div>
+            <span style={cc.amount}>{fmtCOP(card.value)}</span>
+            <span style={cc.pct}>{Math.round((card.value / total) * 100)}%</span>
+          </div>
+        ))}
+        {data.length > 1 && (
+          <div style={cc.totalRow}>
+            <span style={cc.totalLabel}>Total</span>
+            <div />
+            <span style={cc.totalAmount}>{fmtCOP(total)}</span>
+            <span style={cc.pct}>100%</span>
+          </div>
+        )}
+      </div>
+    </ChartCard>
+  );
+}
+const cc = {
+  row: {
+    display: 'grid',
+    gridTemplateColumns: '140px 1fr 120px 44px',
+    alignItems: 'center',
+    gap: 10,
+  },
+  name: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  barBg: {
+    height: 8,
+    background: 'var(--bg)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    borderRadius: 4,
+    transition: 'width 0.5s ease',
+  },
+  amount: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    textAlign: 'right',
+  },
+  pct: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: 'var(--text-tertiary)',
+    textAlign: 'right',
+  },
+  totalRow: {
+    display: 'grid',
+    gridTemplateColumns: '140px 1fr 120px 44px',
+    alignItems: 'center',
+    gap: 10,
+    borderTop: '1px solid var(--border)',
+    paddingTop: 10,
+    marginTop: 2,
+  },
+  totalLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: 'var(--text-secondary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  totalAmount: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    textAlign: 'right',
+  },
+};
+
 // ── 9. Line — Savings Trend (12 months) ─────────────────────
 export function SavingsTrendChart({ savings }) {
   const now = new Date();
