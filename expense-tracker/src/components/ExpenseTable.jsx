@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { fmtCOP, fmtDate } from '../utils/format';
 
 const COLS = ['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', 'Who Paid', ''];
 
 export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, onAddVariable }) {
+  const [activeTab, setActiveTab] = useState('Variable');
+
   if (expenses.length === 0) {
     return (
       <div style={s.empty}>
@@ -18,31 +21,64 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onAddFixed, o
 
   const sorted = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
   const fixed    = sorted.filter(e => e.costType === 'fixed');
-  const variable = sorted.filter(e => e.costType !== 'fixed'); // includes legacy w/o costType
+  const variable = sorted.filter(e => e.costType !== 'fixed');
 
-  const fixedTotal    = fixed.reduce((s, e) => s + e.price, 0);
-  const variableTotal = variable.reduce((s, e) => s + e.price, 0);
+  const fixedTotal    = fixed.reduce((sum, e) => sum + e.price, 0);
+  const variableTotal = variable.reduce((sum, e) => sum + e.price, 0);
+
+  const tabs = [
+    { key: 'Variable', label: 'Variable', count: variable.length, color: 'var(--accent)' },
+    { key: 'Fixed',    label: 'Fixed',    count: fixed.length,    color: 'var(--warning)' },
+    { key: 'All',      label: 'All',      count: expenses.length, color: 'var(--text-secondary)' },
+  ];
 
   return (
     <div style={s.container}>
-      <Section
-        title="Fixed Costs"
-        color="var(--warning)"
-        expenses={fixed}
-        total={fixedTotal}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onAdd={onAddFixed}
-      />
-      <Section
-        title="Variable Costs"
-        color="var(--accent)"
-        expenses={variable}
-        total={variableTotal}
-        onEdit={onEdit}
-        onDelete={onDelete}
-        onAdd={onAddVariable}
-      />
+      <div style={s.tabBar}>
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            style={{
+              ...s.tabBtn,
+              ...(activeTab === tab.key ? { ...s.tabActive, borderBottomColor: tab.color, color: tab.color } : {}),
+            }}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+            <span style={{
+              ...s.tabCount,
+              ...(activeTab === tab.key ? { background: tab.color, color: '#fff' } : {}),
+            }}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div style={s.tabContent}>
+        {(activeTab === 'Variable' || activeTab === 'All') && (
+          <Section
+            title="Variable Costs"
+            color="var(--accent)"
+            expenses={variable}
+            total={variableTotal}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onAdd={onAddVariable}
+          />
+        )}
+        {(activeTab === 'Fixed' || activeTab === 'All') && (
+          <Section
+            title="Fixed Costs"
+            color="var(--warning)"
+            expenses={fixed}
+            total={fixedTotal}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onAdd={onAddFixed}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -125,7 +161,32 @@ function Section({ title, color, expenses, total, onEdit, onDelete, onAdd }) {
 }
 
 const s = {
-  container: { display: 'flex', flexDirection: 'column', gap: 20 },
+  container: { display: 'flex', flexDirection: 'column', gap: 0 },
+  tabBar: {
+    display: 'flex', gap: 0,
+    borderBottom: '1px solid var(--border)',
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+    padding: '0 4px',
+    boxShadow: 'var(--shadow-sm)',
+  },
+  tabBtn: {
+    display: 'flex', alignItems: 'center', gap: 7,
+    padding: '12px 18px', fontSize: 13, fontWeight: 600,
+    background: 'none', border: 'none', borderBottom: '2px solid transparent',
+    cursor: 'pointer', color: 'var(--text-tertiary)',
+    transition: 'color 0.15s, border-color 0.15s',
+    marginBottom: -1,
+  },
+  tabActive: {
+    color: 'var(--accent)',
+  },
+  tabCount: {
+    fontSize: 11, fontWeight: 700, borderRadius: 20,
+    padding: '1px 7px', background: 'var(--surface-2)',
+    color: 'var(--text-tertiary)', transition: 'background 0.15s, color 0.15s',
+  },
+  tabContent: { display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 16 },
   section: {
     background: 'var(--surface)', borderRadius: 'var(--radius-md)',
     boxShadow: 'var(--shadow-sm)', overflow: 'hidden',
