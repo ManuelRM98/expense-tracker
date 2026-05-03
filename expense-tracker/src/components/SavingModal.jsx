@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { todayISO } from '../utils/format';
+import DatePicker from './DatePicker';
 
 const EMPTY = {
   date: '',
@@ -7,6 +8,7 @@ const EMPTY = {
   category: '',
   price: '',
   cardPay: '',
+  whoPaid: '',
   cardType: '',
 };
 
@@ -34,10 +36,11 @@ export default function SavingModal({
           category: editing.category,
           price:    Number(editing.price).toLocaleString('es-CO'),
           cardPay:  editing.cardPay,
+          whoPaid:  editing.whoPaid ?? '',
           cardType: editing.cardType ?? '',
         });
       } else {
-        setForm({ ...EMPTY, date: todayISO() });
+        setForm({ ...EMPTY, date: todayISO(), whoPaid: 'Me' });
       }
       setErrors({});
       setAddingCard(false); setNewCard(''); setManagingCards(false);
@@ -68,6 +71,7 @@ export default function SavingModal({
     if (!form.category)        e.category = 'Category is required.';
     if (!form.price)           e.price    = 'Price is required.';
     if (!form.cardPay)         e.cardPay  = 'Please select Yes or No.';
+    if (!form.whoPaid.trim())  e.whoPaid  = 'Who Paid is required.';
     if (form.cardPay === 'Yes' && !form.cardType) e.cardType = 'Please select a card type.';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -124,11 +128,11 @@ export default function SavingModal({
             {/* Date */}
             <div style={s.group}>
               <label style={s.label}>Date</label>
-              <input
-                type="date"
-                style={{ ...s.input, ...(errors.date ? s.inputError : {}) }}
+              <DatePicker
                 value={form.date}
-                onChange={e => set('date', e.target.value)}
+                onChange={v => set('date', v)}
+                hasError={!!errors.date}
+                accent="var(--savings)"
               />
               {errors.date && <span style={s.errMsg}>{errors.date}</span>}
             </div>
@@ -209,6 +213,18 @@ export default function SavingModal({
                   )}
                 </>
               )}
+            </div>
+
+            {/* Who Paid */}
+            <div style={s.group}>
+              <label style={s.label}>Who Paid</label>
+              <input
+                type="text" placeholder="Name"
+                style={{ ...s.input, ...(errors.whoPaid ? s.inputError : {}) }}
+                value={form.whoPaid}
+                onChange={e => set('whoPaid', e.target.value)}
+              />
+              {errors.whoPaid && <span style={s.errMsg}>{errors.whoPaid}</span>}
             </div>
 
             {/* Payment with Card */}

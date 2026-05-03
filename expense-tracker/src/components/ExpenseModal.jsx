@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { todayISO, MONTH_NAMES } from '../utils/format';
+import DatePicker from './DatePicker';
 
 const EMPTY = {
   date:         '',
@@ -54,7 +55,7 @@ export default function ExpenseModal({
           billingMonth: editing.billingMonth ?? '',
         });
       } else {
-        setForm({ ...EMPTY, date: todayISO(), costType: defaultCostType ?? '' });
+        setForm({ ...EMPTY, date: todayISO(), costType: defaultCostType ?? '', whoPaid: 'Me' });
       }
       setErrors({});
       setAddingCard(false); setNewCard(''); setManagingCards(false);
@@ -169,11 +170,11 @@ export default function ExpenseModal({
             {/* Date */}
             <div style={s.group}>
               <label style={s.label}>Date</label>
-              <input
-                type="date"
-                style={{ ...s.input, ...(errors.date ? s.inputError : {}) }}
+              <DatePicker
                 value={form.date}
-                onChange={e => set('date', e.target.value)}
+                onChange={v => set('date', v)}
+                hasError={!!errors.date}
+                accent="var(--accent)"
               />
               {errors.date && <span style={s.errMsg}>{errors.date}</span>}
             </div>
