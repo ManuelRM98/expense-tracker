@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { MONTH_NAMES } from '../utils/format';
+import { MONTH_SHORT } from '../utils/format';
 
 const now = new Date();
 const CURRENT_YEAR = now.getFullYear();
-const CURRENT_MONTH = now.getMonth(); // 0-indexed
+const CURRENT_MONTH = now.getMonth();
 
 export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMonth, expenses, savings, onOpenSettings }) {
   const yearsWithData = useMemo(() => {
@@ -13,16 +13,27 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
     return [...years].sort((a, b) => b - a);
   }, [expenses, savings]);
 
-  const [expandedYears, setExpandedYears] = useState({ [CURRENT_YEAR]: true });
+  const minYear = Math.min(...yearsWithData, CURRENT_YEAR - 1);
+  const maxYear = CURRENT_YEAR + 1;
+
+  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [collapsed, setCollapsed] = useState(false);
 
-  function toggleYear(year) {
-    setExpandedYears(prev => ({ ...prev, [year]: !prev[year] }));
-  }
+  const activeMonths = useMemo(() => {
+    const set = new Set();
+    expenses.forEach(e => {
+      const [y, m] = e.date.split('-');
+      if (parseInt(y) === selectedYear) set.add(parseInt(m) - 1);
+    });
+    savings.forEach(sv => {
+      const [y, m] = sv.date.split('-');
+      if (parseInt(y) === selectedYear) set.add(parseInt(m) - 1);
+    });
+    return set;
+  }, [expenses, savings, selectedYear]);
 
   return (
     <aside style={{ ...s.sidebar, width: collapsed ? 52 : 200 }}>
-      {/* Hamburger toggle */}
       <button style={s.hamburger} onClick={() => setCollapsed(c => !c)} title={collapsed ? 'Expandir menú' : 'Colapsar menú'}>
         <span style={s.bar} />
         <span style={s.bar} />
@@ -31,7 +42,6 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
 
       {!collapsed && (
         <>
-          {/* Home / Annual summary */}
           <button
             style={{ ...s.homeBtn, ...(view === 'home' ? s.homeBtnActive : {}) }}
             onClick={onHome}
@@ -46,43 +56,44 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
 
           <p style={s.sectionLabel}>Meses</p>
 
-          <div style={s.monthsScroll}>
-            {yearsWithData.map(year => {
-              const isExpanded = !!expandedYears[year];
-              const isCurrYear = year === CURRENT_YEAR;
-              const monthCount = isCurrYear ? CURRENT_MONTH + 1 : 12;
-
-              return (
-                <div key={year}>
-                  <button style={s.yearBtn} onClick={() => toggleYear(year)}>
-                    <span style={s.yearLabel}>{year}</span>
-                    <span style={s.chevron}>{isExpanded ? '▾' : '▸'}</span>
-                  </button>
-
-                  {isExpanded && (
-                    <div>
-                      {Array.from({ length: monthCount }, (_, i) => {
-                        const isActive = view === 'month' && viewYear === year && viewMonth === i;
-                        const isCurrMonth = isCurrYear && i === CURRENT_MONTH;
-                        return (
-                          <button
-                            key={i}
-                            style={{ ...s.monthBtn, ...(isActive ? s.monthBtnActive : {}) }}
-                            onClick={() => onSelectMonth(year, i)}
-                          >
-                            <span>{MONTH_NAMES[i]}</span>
-                            {isCurrMonth && <span style={s.dot} />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div style={s.yearNav}>
+            <button
+              style={{ ...s.yearArrow, ...(selectedYear <= minYear ? s.yearArrowDisabled : {}) }}
+              disabled={selectedYear <= minYear}
+              onClick={() => setSelectedYear(y => y - 1)}
+            >◂</button>
+            <span style={s.yearLabel}>{selectedYear}</span>
+            <button
+              style={{ ...s.yearArrow, ...(selectedYear >= maxYear ? s.yearArrowDisabled : {}) }}
+              disabled={selectedYear >= maxYear}
+              onClick={() => setSelectedYear(y => y + 1)}
+            >▸</button>
           </div>
 
-          {/* Bottom action buttons */}
+          <div style={s.monthsScroll}>
+            <div style={s.monthGrid}>
+              {MONTH_SHORT.map((name, i) => {
+                const isActive = view === 'month' && viewYear === selectedYear && viewMonth === i;
+                const isCurrMonth = selectedYear === CURRENT_YEAR && i === CURRENT_MONTH;
+                const hasData = activeMonths.has(i);
+                return (
+                  <button
+                    key={i}
+                    style={{
+                      ...s.monthCell,
+                      ...(!hasData ? s.monthCellDim : {}),
+                      ...(isActive ? s.monthCellActive : {}),
+                    }}
+                    onClick={() => onSelectMonth(selectedYear, i)}
+                  >
+                    {name}
+                    {isCurrMonth && <span style={s.dot} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div style={s.bottomActions}>
             <div style={s.divider} />
             <button style={{ ...s.actionBtn, ...(view === 'settings' ? s.actionBtnActive : {}) }} onClick={onOpenSettings} title="Settings">
@@ -175,60 +186,80 @@ const s = {
     margin: '4px 0 6px',
     whiteSpace: 'nowrap',
   },
+  yearNav: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '2px 8px',
+    marginBottom: 6,
+    flexShrink: 0,
+  },
+  yearArrow: {
+    width: 26,
+    height: 26,
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    border: '1.5px solid var(--border)',
+    borderRadius: '50%',
+    background: 'var(--bg)',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    fontSize: 11,
+    fontFamily: 'inherit',
+    lineHeight: 1,
+    padding: 0,
+  },
+  yearArrowDisabled: {
+    opacity: 0.25,
+    cursor: 'default',
+  },
+  yearLabel: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    letterSpacing: '0.2px',
+  },
   monthsScroll: {
     flex: 1,
     overflowY: 'auto',
     overflowX: 'hidden',
+    padding: '0 4px',
   },
-  yearBtn: {
-    width: '100%',
+  monthGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: 4,
+  },
+  monthCell: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '7px 12px',
+    justifyContent: 'center',
+    gap: 3,
+    padding: '10px 4px',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
     background: 'transparent',
     color: 'var(--text-secondary)',
-    fontSize: 13,
-    fontWeight: 700,
+    fontSize: 12,
+    fontWeight: 500,
     cursor: 'pointer',
     fontFamily: 'inherit',
     transition: 'background 0.12s',
-    whiteSpace: 'nowrap',
   },
-  yearLabel: {
-    letterSpacing: '0.2px',
-  },
-  chevron: {
-    fontSize: 11,
-    color: 'var(--text-tertiary)',
-  },
-  monthBtn: {
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '7px 12px 7px 22px',
-    border: 'none',
-    borderRadius: 'var(--radius-sm)',
-    background: 'transparent',
-    color: 'var(--text-secondary)',
-    fontSize: 13,
-    fontWeight: 400,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    transition: 'background 0.12s',
-    whiteSpace: 'nowrap',
-  },
-  monthBtnActive: {
+  monthCellActive: {
     background: 'var(--accent)',
     color: '#fff',
     fontWeight: 600,
   },
+  monthCellDim: {
+    opacity: 0.35,
+  },
   dot: {
-    width: 6,
-    height: 6,
+    width: 4,
+    height: 4,
     borderRadius: '50%',
     background: 'var(--success)',
     display: 'inline-block',
