@@ -1,105 +1,114 @@
 # Expense Tracker
 
-A web application for personal expense tracking. Allows you to record, edit, and analyze expenses by month, category, card, and person. Includes monthly analytics charts and a sidebar with an annual summary.
+A full-stack web application for personal expense tracking. Record, edit, and analyze expenses by month, category, card, and person. Includes savings, fixed expenses, debt tracking, budget allocation, and monthly/annual analytics charts.
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
+|---|---|
 | Frontend | React 19 + Vite |
 | Backend / API | FastAPI + Uvicorn |
 | Database | SQLite (via SQLAlchemy) |
 | Charts | Recharts |
+| Containerization | Docker + Docker Compose |
 
 ## Project Structure
 
 ```
 expense-tracker/
-├── expense-tracker/        # React frontend
+├── docker-compose.yml          # Orchestrates both services
+├── expense-tracker/            # React frontend
+│   ├── Dockerfile
 │   ├── src/
-│   │   ├── components/     # Charts, ExpenseModal, ExpenseTable
-│   │   ├── hooks/          # useExpenses, useFixedExpenses
-│   │   ├── services/       # API integration layer
-│   │   └── utils/          # format.js (fmtCOP, fmtDate, uid…)
+│   │   ├── components/         # UI components
+│   │   ├── hooks/              # useExpenses, useFixedExpenses, useBudget, useDebts
+│   │   ├── services/           # api.js — HTTP client for the backend
+│   │   └── utils/              # format.js (fmtCOP, fmtDate, uid…)
 │   ├── package.json
 │   └── vite.config.js
-└── expense-tracker-api/    # FastAPI backend
+└── expense-tracker-api/        # FastAPI backend
+    ├── Dockerfile
     ├── main.py
     ├── models.py
     ├── schemas.py
     ├── database.py
-    ├── routers/            # expenses, income, savings, categories, analytics
+    ├── routers/                # expenses, income, savings, fixed_expenses,
+    │                           # categories, analytics, config, budget, debts
     └── requirements.txt
 ```
 
 ## Prerequisites
 
-- **Node.js** v18 or higher
-- **Python** 3.10 or higher
-- **pip** and `venv` support
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
 
-## Installation & Local Setup
+That's it. No Node.js or Python installation required on your machine.
 
-### 1. Clone the repository
+## Quick Start (Docker)
 
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd expense-tracker
+
+# First time — build images and start both services
+docker-compose up --build
+
+# From the second time onwards
+docker-compose up
 ```
 
-### 2. Backend — FastAPI
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API docs (Swagger) | http://localhost:8000/docs |
 
 ```bash
-# Navigate to the API folder
+# Stop all services
+docker-compose down
+```
+
+> **Hot-reload is enabled.** Changes to source files are reflected immediately without restarting the containers.
+
+> **Data is persisted.** The SQLite database (`expense-tracker-api/expense_tracker.db`) lives on your machine and is mounted into the container, so data survives restarts.
+
+---
+
+## Manual Setup (without Docker)
+
+If you prefer to run the services directly on your machine, you'll need:
+
+- Node.js v18 or higher
+- Python 3.10 or higher
+
+### 1. Backend — FastAPI
+
+```bash
 cd expense-tracker-api
 
-# Create and activate the virtual environment
 python3 -m venv venv
-source venv/bin/activate          # macOS / Linux
-# venv\Scripts\activate           # Windows
+source venv/bin/activate       # macOS / Linux
+# venv\Scripts\activate        # Windows
 
-# Install dependencies
 pip install -r requirements.txt
-
-# Start the development server (port 8000)
 uvicorn main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`.  
-Interactive docs at `http://localhost:8000/docs`.
+### 2. Frontend — React + Vite
 
-### 3. Frontend — React + Vite
-
-Open a **new terminal**:
+Open a new terminal:
 
 ```bash
-# From the project root
 cd expense-tracker
-
-# Install dependencies (first time only)
 npm install
-
-# Start the development server (port 5173)
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
-
-## Frontend Scripts
+### Frontend scripts
 
 ```bash
 npm run dev       # Development server with hot-reload
 npm run build     # Production build → dist/
 npm run preview   # Preview the production build
 npm run lint      # Run ESLint
-```
-
-## Quick Start (two terminals)
-
-```bash
-# Terminal 1 — API
-cd expense-tracker-api && source venv/bin/activate && uvicorn main:app --reload
-
-# Terminal 2 — Frontend
-cd expense-tracker && npm run dev
 ```

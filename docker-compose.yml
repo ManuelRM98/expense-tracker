@@ -1,0 +1,21 @@
+services:
+  frontend:
+    build:
+      context: ./expense-tracker
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./expense-tracker:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./expense-tracker-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./expense-tracker-api:/app
+    environment:
+      - DATABASE_URL=sqlite:///./expense_tracker.db
