@@ -1,6 +1,17 @@
 # Expense Tracker
 
-A full-stack web application for personal expense tracking. Record, edit, and analyze expenses by month, category, card, and person. Includes savings, fixed expenses, debt tracking, budget allocation, and monthly/annual analytics charts.
+A full-stack personal finance web application. Track expenses, savings, debts, fixed costs, and income — with budget allocation and monthly/annual analytics charts.
+
+## Features
+
+- **Expenses** — record, edit, and delete expenses by month, category, card, and person; bulk import supported
+- **Savings** — log savings entries by category and month
+- **Income** — track monthly income entries
+- **Fixed expenses** — manage recurring cost templates that auto-generate entries for any month
+- **Debts** — monitor who owes whom, with per-debt payment history
+- **Budget** — set a default monthly budget or override it per month
+- **Categories & cards** — fully configurable expense/savings categories and card types with cut-off dates
+- **Analytics** — monthly summaries, annual overviews, and multi-month trend charts (Recharts)
 
 ## Tech Stack
 
@@ -32,8 +43,8 @@ expense-tracker/
     ├── models.py
     ├── schemas.py
     ├── database.py
-    ├── routers/                # expenses, income, savings, fixed_expenses,
-    │                           # categories, analytics, config, budget, debts
+    ├── routers/                # See API Routes below
+    ├── .env                    # Database connection string
     └── requirements.txt
 ```
 
@@ -71,6 +82,38 @@ docker-compose down
 > **Hot-reload is enabled.** Changes to source files are reflected immediately without restarting the containers.
 
 > **Data is persisted.** The SQLite database (`expense-tracker-api/expense_tracker.db`) lives on your machine and is mounted into the container, so data survives restarts.
+
+## Environment & Configuration
+
+The backend reads `expense-tracker-api/.env`. The default ships with SQLite; switch to PostgreSQL by uncommenting one line — no other code changes needed.
+
+```env
+# SQLite (default — zero config, single file)
+DATABASE_URL=sqlite:///./expense_tracker.db
+
+# PostgreSQL (uncomment to migrate)
+# DATABASE_URL=postgresql://user:password@localhost:5432/expense_tracker
+```
+
+## API Routes
+
+| Prefix | Description |
+|---|---|
+| `GET/POST/PUT/DELETE /expenses` | CRUD for expense entries; `POST /expenses/bulk` for batch import |
+| `GET/POST/PUT/DELETE /savings` | CRUD for savings entries |
+| `GET/POST/PUT/DELETE /income` | CRUD for income entries |
+| `GET/POST/PUT/PATCH/DELETE /fixed-expenses` | Recurring expense templates + `POST /generate/{month_key}` |
+| `GET/POST/PUT/DELETE /debts` | Debt records + nested payment history |
+| `GET/PUT/DELETE /budget` | Default budget and per-month overrides |
+| `GET/POST/DELETE /categories/expenses` | Manage expense categories |
+| `GET/POST/DELETE /categories/savings` | Manage savings categories |
+| `GET/POST/PATCH/DELETE /cards` | Card types with cut-off dates |
+| `GET /analytics/monthly/{month_key}` | Monthly income/expense/savings summary |
+| `GET /analytics/annual/{year}` | Annual breakdown |
+| `GET /analytics/trend` | Multi-month expense trend |
+| `GET/PUT /config` | Global app configuration |
+
+Full interactive docs available at `http://localhost:8000/docs` when the backend is running.
 
 ---
 
