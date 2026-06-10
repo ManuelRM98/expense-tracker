@@ -12,52 +12,52 @@ const EMPTY = {
   cardType: '',
 };
 
+function initialSavingForm(editing, cloning) {
+  if (editing) {
+    return {
+      date:     editing.date,
+      desc:     editing.desc,
+      category: editing.category,
+      price:    Number(editing.price).toLocaleString('es-CO'),
+      cardPay:  editing.cardPay,
+      whoPaid:  editing.whoPaid ?? '',
+      cardType: editing.cardType ?? '',
+    };
+  }
+  if (cloning) {
+    return {
+      date:     todayISO(),
+      desc:     cloning.desc,
+      category: cloning.category ?? '',
+      price:    Number(cloning.price).toLocaleString('es-CO'),
+      cardPay:  cloning.cardPay,
+      whoPaid:  cloning.whoPaid ?? '',
+      cardType: cloning.cardType ?? '',
+    };
+  }
+  return { ...EMPTY, date: todayISO(), whoPaid: 'Me' };
+}
+
 export default function SavingModal({
   open, onClose, onSave,
   cardTypes, onAddCard, onRemoveCard,
   savingCategories, onAddCategory, onRemoveCategory,
+  onRenameCategory,  // Part C.2: optional callback (oldName, newName) => void
   editing,
   cloning,
 }) {
-  const [form, setForm]             = useState(EMPTY);
+  // State is initialised from props at mount; parent remounts via key when open/editing/cloning changes
+  const [form, setForm]             = useState(() => initialSavingForm(editing, cloning));
   const [addingCard, setAddingCard] = useState(false);
   const [newCard, setNewCard]       = useState('');
   const [managingCards, setManagingCards] = useState(false);
   const [addingCat, setAddingCat]   = useState(false);
   const [newCat, setNewCat]         = useState('');
   const [managingCats, setManagingCats] = useState(false);
+  // Part C.2: inline rename state
+  const [renamingCat,  setRenamingCat]  = useState(null);
+  const [renameCatVal, setRenameCatVal] = useState('');
   const [errors, setErrors]         = useState({});
-
-  useEffect(() => {
-    if (open) {
-      if (editing) {
-        setForm({
-          date:     editing.date,
-          desc:     editing.desc,
-          category: editing.category,
-          price:    Number(editing.price).toLocaleString('es-CO'),
-          cardPay:  editing.cardPay,
-          whoPaid:  editing.whoPaid ?? '',
-          cardType: editing.cardType ?? '',
-        });
-      } else if (cloning) {
-        setForm({
-          date:     todayISO(),
-          desc:     cloning.desc,
-          category: cloning.category ?? '',
-          price:    Number(cloning.price).toLocaleString('es-CO'),
-          cardPay:  cloning.cardPay,
-          whoPaid:  cloning.whoPaid ?? '',
-          cardType: cloning.cardType ?? '',
-        });
-      } else {
-        setForm({ ...EMPTY, date: todayISO(), whoPaid: 'Me' });
-      }
-      setErrors({});
-      setAddingCard(false); setNewCard(''); setManagingCards(false);
-      setAddingCat(false);  setNewCat('');  setManagingCats(false);
-    }
-  }, [open, editing, cloning]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
@@ -185,14 +185,54 @@ export default function SavingModal({
                 <div style={s.pillsWrap}>
                   {savingCategories.map(c => (
                     <span key={c} style={s.pill}>
-                      {c}
-                      <button
-                        type="button"
-                        style={{ ...s.pillDel, ...(savingCategories.length <= 1 ? s.pillDelDisabled : {}) }}
-                        disabled={savingCategories.length <= 1}
-                        onClick={() => handleRemoveCat(c)}
-                        title={savingCategories.length <= 1 ? 'Cannot delete the last item' : `Delete "${c}"`}
-                      >&#x2715;</button>
+                      {renamingCat === c ? (
+                        <>
+                          <input
+                            autoFocus
+                            type="text"
+                            style={{ ...s.input, padding: '2px 6px', fontSize: 13, width: 100 }}
+                            value={renameCatVal}
+                            onChange={e => setRenameCatVal(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const n = renameCatVal.trim();
+                                if (n && n !== c && onRenameCategory) onRenameCategory(c, n);
+                                setRenamingCat(null);
+                              }
+                              if (e.key === 'Escape') setRenamingCat(null);
+                            }}
+                          />
+                          <button type="button" style={s.pillDel} onClick={() => {
+                            const n = renameCatVal.trim();
+                            if (n && n !== c && onRenameCategory) onRenameCategory(c, n);
+                            setRenamingCat(null);
+                          }}>&#10003;</button>
+                        </>
+                      ) : (
+                        <>
+                          {c}
+                          {onRenameCategory && (
+                            <button
+                              type="button"
+                              style={{ ...s.pillDel, color: 'var(--text-tertiary)', fontSize: 11 }}
+                              title={`Rename "${c}"`}
+                              onClick={() => { setRenamingCat(c); setRenameCatVal(c); }}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            style={{ ...s.pillDel, ...(savingCategories.length <= 1 ? s.pillDelDisabled : {}) }}
+                            disabled={savingCategories.length <= 1}
+                            onClick={() => handleRemoveCat(c)}
+                            title={savingCategories.length <= 1 ? 'Cannot delete the last item' : `Delete "${c}"`}
+                          >&#x2715;</button>
+                        </>
+                      )}
                     </span>
                   ))}
                 </div>

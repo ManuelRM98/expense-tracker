@@ -3,23 +3,12 @@ import { todayISO, fmtCOP } from '../utils/format';
 import DatePicker from './DatePicker';
 
 export default function DebtPaymentModal({ open, onClose, onSave, debt, editing }) {
-  const [form, setForm]     = useState({ amount: '', date: todayISO(), note: '' });
+  // State is initialised from props at mount; parent remounts via key when open/editing changes
+  const [form, setForm] = useState(() => editing
+    ? { amount: Number(editing.amount).toLocaleString('es-CO'), date: editing.date, note: editing.note || '' }
+    : { amount: '', date: todayISO(), note: '' }
+  );
   const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (open) {
-      if (editing) {
-        setForm({
-          amount: Number(editing.amount).toLocaleString('es-CO'),
-          date:   editing.date,
-          note:   editing.note || '',
-        });
-      } else {
-        setForm({ amount: '', date: todayISO(), note: '' });
-      }
-      setErrors({});
-    }
-  }, [open, editing]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };

@@ -11,25 +11,18 @@ const EMPTY = {
 };
 
 export default function DebtModal({ open, onClose, onSave, editing }) {
-  const [form, setForm]     = useState(EMPTY);
-  const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (open) {
-      if (editing) {
-        setForm({
-          direction:   editing.direction,
-          person:      editing.person,
-          description: editing.description,
-          amount:      Number(editing.amount).toLocaleString('es-CO'),
-          date:        editing.createdDate,
-        });
-      } else {
-        setForm({ ...EMPTY, date: todayISO() });
+  // State is initialised from props at mount; parent remounts via key when open/editing changes
+  const [form, setForm] = useState(() => editing
+    ? {
+        direction:   editing.direction,
+        person:      editing.person,
+        description: editing.description,
+        amount:      Number(editing.amount).toLocaleString('es-CO'),
+        date:        editing.createdDate,
       }
-      setErrors({});
-    }
-  }, [open, editing]);
+    : { ...EMPTY, date: todayISO() }
+  );
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };

@@ -13,6 +13,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 _TEST_DB = Path(tempfile.mkdtemp(prefix="expense_tracker_test_")) / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB}"
 
+# SEC-05: disable rate limiting in tests so the suite never hits throttle limits
+os.environ["DISABLE_RATE_LIMIT"] = "1"
+
 import pytest
 from fastapi.testclient import TestClient
 

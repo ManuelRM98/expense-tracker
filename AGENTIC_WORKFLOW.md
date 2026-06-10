@@ -119,7 +119,7 @@ orchestrated by docker-compose).
    (PostgreSQL compatibility is required); no business logic in models.py; new deps
    added to requirements.txt.
 5. Regression vs known issues: check the change doesn't reintroduce anything from
-   spec/10-findings-summary.md (cite IDs like BUG-03, PERF-01 when relevant).
+   spec/DONE-10-findings-summary.md (cite IDs like BUG-03, PERF-01 when relevant).
 6. Error handling: every new mutation surfaced to the user has try/catch + toast
    (QUAL-01 class of bugs); every async handler actually awaits.
 
@@ -237,7 +237,7 @@ A reviewer agent without executable checks can only offer opinions. In priority 
 4. **Fix the two agent files** (frontmatter issue, §1).
 5. **Fix BUG-01 first** (`models.Income` crash) — otherwise the very first test run on
    analytics fails for pre-existing reasons and pollutes every review with noise. The
-   "Immediate" list in `spec/10-findings-summary.md` is a good warm-up task *for* the
+   "Immediate" list in `spec/DONE-10-findings-summary.md` is a good warm-up task *for* the
    new workflow: run each fix through implement → review to validate the loop.
 
 ---

@@ -4,7 +4,7 @@ description: Fix a bug through the agentic pipeline (triage → failing test →
 Fix the following bug using the workflow in AGENTIC_WORKFLOW.md §4.2:
 
 1. **TRIAGE** — Reproduce it: which layer, which file. If it matches a `spec/` finding
-   ID (see spec/10-findings-summary.md), cite the ID.
+   ID (see spec/DONE-10-findings-summary.md), cite the ID.
 2. **TEST FIRST** — Write a failing test that captures the bug (backend: pytest in
    `expense-tracker-api/tests/`; frontend logic without a test runner: written repro
    steps).

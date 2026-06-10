@@ -59,7 +59,7 @@ in `expense-tracker-api/.env` is the only switch, so never use SQLite-specific S
 ## Known issues
 
 `spec/` contains a verified audit with stable IDs (BUG-, SEC-, PERF-, QUAL-, DEBT-,
-DOCKER-, DEP-, STATE-). Start with `spec/10-findings-summary.md` for the priority
+DOCKER-, DEP-, STATE-). Start with `spec/DONE-10-findings-summary.md` for the priority
 matrix and fix order. When fixing or reviewing, cite IDs and avoid reintroducing
 documented findings.
 

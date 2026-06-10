@@ -1,9 +1,12 @@
 import { useState } from 'react';
 
-export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, onUpdateCardCutOff, onBack }) {
+export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, onUpdateCardCutOff, onRenameCard, onBack }) {
   const [newCardName, setNewCardName] = useState('');
   const [addingCard,  setAddingCard]  = useState(false);
   const [pendingCutOff, setPendingCutOff] = useState({});  // { [name]: string }
+  // Part C.2: rename state — { [name]: string } for inline editing
+  const [renamingCard, setRenamingCard] = useState(null);  // name being renamed
+  const [renameValue,  setRenameValue]  = useState('');
 
   function handleAddCard() {
     const name = newCardName.trim();
@@ -26,6 +29,13 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
   function getCutOffDisplay(card) {
     if (pendingCutOff[card.name] !== undefined) return pendingCutOff[card.name];
     return card.cutOffDay !== null ? String(card.cutOffDay) : '';
+  }
+
+  function handleRenameSubmit(oldName) {
+    const newName = renameValue.trim();
+    if (!newName || newName === oldName) { setRenamingCard(null); return; }
+    if (onRenameCard) onRenameCard(oldName, newName);
+    setRenamingCard(null);
   }
 
   return (
@@ -55,7 +65,37 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
                     <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
                   </svg>
                 </div>
-                <span style={s.cardName}>{card.name}</span>
+                {renamingCard === card.name ? (
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input
+                      autoFocus
+                      style={s.renameInput}
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleRenameSubmit(card.name);
+                        if (e.key === 'Escape') setRenamingCard(null);
+                      }}
+                    />
+                    <button style={s.renameOkBtn} onClick={() => handleRenameSubmit(card.name)}>OK</button>
+                    <button style={s.renameCancelBtn} onClick={() => setRenamingCard(null)}>&#x2715;</button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={s.cardName}>{card.name}</span>
+                    {onRenameCard && (
+                      <button
+                        style={s.renameIconBtn}
+                        title={`Rename "${card.name}"`}
+                        onClick={() => { setRenamingCard(card.name); setRenameValue(card.name); }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <div style={s.rowRight}>
                 <div style={s.cutOffGroup}>
@@ -230,5 +270,28 @@ const s = {
   },
   hint: {
     fontSize: 12, color: 'var(--text-tertiary)', marginTop: 16, lineHeight: 1.5,
+  },
+  renameInput: {
+    fontFamily: 'inherit', fontSize: 14, width: 120,
+    background: 'var(--bg)', border: '1.5px solid var(--accent)',
+    borderRadius: 'var(--radius-sm)', padding: '5px 8px',
+    color: 'var(--text-primary)', outline: 'none',
+  },
+  renameOkBtn: {
+    padding: '5px 10px', borderRadius: 'var(--radius-sm)', border: 'none',
+    background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 600,
+    cursor: 'pointer', fontFamily: 'inherit',
+  },
+  renameCancelBtn: {
+    width: 26, height: 26, borderRadius: '50%', border: 'none',
+    background: 'var(--bg)', color: 'var(--text-secondary)',
+    cursor: 'pointer', fontSize: 13,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  renameIconBtn: {
+    width: 24, height: 24, borderRadius: '50%', border: 'none',
+    background: 'transparent', color: 'var(--text-tertiary)',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 0,
   },
 };

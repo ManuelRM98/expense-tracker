@@ -386,6 +386,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
       )}
 
       <DebtModal
+        key={`debt-${debtModalOpen ? (editingDebt?.id ?? 'new') : 'closed'}`}
         open={debtModalOpen}
         onClose={() => setDebtModalOpen(false)}
         onSave={handleSaveDebt}
@@ -393,6 +394,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
       />
 
       <DebtPaymentModal
+        key={`pay-add-${paymentModalOpen ? (paymentTarget?.id ?? 'none') : 'closed'}`}
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         onSave={handleSavePayment}
@@ -400,6 +402,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
       />
 
       <DebtPaymentModal
+        key={`pay-edit-${editPaymentOpen ? (editPaymentData?.payment?.id ?? 'none') : 'closed'}`}
         open={editPaymentOpen}
         onClose={() => setEditPaymentOpen(false)}
         onSave={handleSaveEditPayment}

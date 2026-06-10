@@ -86,4 +86,4 @@ ephemeral client-side keys, never entity IDs), month name arrays.
 
 The audit in `../spec/` documents frontend findings by ID (BUG-02/05/06/07, QUAL-01/
 04/06/09/10, STATE-01…07, DEBT-02/03/07, PERF-03/04). Check
-`../spec/10-findings-summary.md` before fixing something that may already be catalogued.
+`../spec/DONE-10-findings-summary.md` before fixing something that may already be catalogued.

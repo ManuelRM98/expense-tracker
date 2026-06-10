@@ -1,5 +1,17 @@
 # 10 — Findings Summary and Prioritization
 
+> **STATUS: DONE — all findings resolved on 2026-06-10** via the agentic pipeline
+> (backend-agent → frontend-agent ×2 → qa-reviewer fix loop, APPROVED).
+> Verification at close: backend pytest 43 passed, frontend lint 0 problems, build green.
+> Notes on scope:
+> - **SEC-01**: the DB is untracked from the index and ignored, but the *history purge*
+>   (`git filter-repo`) is destructive and still requires an explicit human decision.
+> - **SEC-02/SEC-05**: mitigated for a personal tool (explicit CORS methods/headers,
+>   optional `API_KEY`/`X-API-Key` auth, slowapi rate limiting) — not full auth.
+> - **DEBT-05/QUAL-07**: mitigated (distinct-people endpoint + datalist; rename
+>   endpoints with cascade) rather than a schema redesign to surrogate keys.
+> - **DEP-04**: addressed by exact version pinning (DEP-03); no code change needed.
+
 *Verified and updated on 2026-06-08. All findings have been confirmed against the actual codebase.*
 
 ## Changes from Prior Audit

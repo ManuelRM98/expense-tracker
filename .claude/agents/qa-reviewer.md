@@ -37,7 +37,7 @@ orchestrated by docker-compose from the repo root).
    `models.py`; new deps added to `requirements.txt`; new/changed endpoints come
    with a pytest in `tests/`.
 5. **Regression vs known issues**: check the change doesn't reintroduce anything
-   from `spec/10-findings-summary.md` (cite IDs like BUG-03, PERF-01 when relevant).
+   from `spec/DONE-10-findings-summary.md` (cite IDs like BUG-03, PERF-01 when relevant).
 6. **Error handling**: every new mutation surfaced to the user has try/catch + toast
    (QUAL-01 class of bugs); every async handler actually awaits.
 

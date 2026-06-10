@@ -1,21 +1,44 @@
+# Development orchestration: hot-reload via bind mounts and the `dev` image targets.
+# For production use docker-compose.prod.yml (no --reload, nginx frontend, named
+# volume for the database).
 services:
   frontend:
     build:
       context: ./expense-tracker
+      target: dev
     ports:
       - "5173:5173"
     volumes:
       - ./expense-tracker:/app
-      - /app/node_modules
+      - node_modules:/app/node_modules # named volume (DOCKER-08) — refresh with: docker-compose down -v
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy # DOCKER-04 — wait for FastAPI, not just the container
 
   backend:
     build:
       context: ./expense-tracker-api
+      target: dev
     ports:
       - "8000:8000"
     volumes:
       - ./expense-tracker-api:/app
     environment:
       - DATABASE_URL=sqlite:///./expense_tracker.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  node_modules:

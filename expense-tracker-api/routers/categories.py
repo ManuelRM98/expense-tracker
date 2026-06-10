@@ -29,6 +29,29 @@ def add_expense_category(payload: schemas.CategoryCreate, db: Session = Depends(
     return [r.name for r in db.query(models.ExpenseCategory).all()]
 
 
+@router.put("/categories/expenses/{name}", response_model=list[str])
+def rename_expense_category(name: str, payload: schemas.CategoryRename, db: Session = Depends(get_db)):
+    """
+    QUAL-07: Rename an expense category in one transaction, cascading the new name
+    into all expenses and fixed-expense templates that reference the old name.
+    Returns 404 if old name not found; 409 if new name already exists.
+    """
+    row = db.query(models.ExpenseCategory).filter(models.ExpenseCategory.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Category not found")
+    if db.query(models.ExpenseCategory).filter(models.ExpenseCategory.name == payload.new_name).first():
+        raise HTTPException(status_code=409, detail="Target category name already exists")
+
+    # Cascade update to referencing rows
+    db.query(models.Expense).filter(models.Expense.category == name).update({"category": payload.new_name})
+    db.query(models.FixedExpenseTemplate).filter(
+        models.FixedExpenseTemplate.category == name
+    ).update({"category": payload.new_name})
+    row.name = payload.new_name
+    db.commit()
+    return [r.name for r in db.query(models.ExpenseCategory).all()]
+
+
 @router.delete("/categories/expenses/{name}", response_model=list[str])
 def remove_expense_category(name: str, db: Session = Depends(get_db)):
     count = db.query(models.ExpenseCategory).count()
@@ -61,6 +84,26 @@ def add_saving_category(payload: schemas.CategoryCreate, db: Session = Depends(g
     return [r.name for r in db.query(models.SavingCategory).all()]
 
 
+@router.put("/categories/savings/{name}", response_model=list[str])
+def rename_saving_category(name: str, payload: schemas.CategoryRename, db: Session = Depends(get_db)):
+    """
+    QUAL-07: Rename a saving category in one transaction, cascading the new name
+    into all savings that reference the old name.
+    Returns 404 if old name not found; 409 if new name already exists.
+    """
+    row = db.query(models.SavingCategory).filter(models.SavingCategory.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Category not found")
+    if db.query(models.SavingCategory).filter(models.SavingCategory.name == payload.new_name).first():
+        raise HTTPException(status_code=409, detail="Target category name already exists")
+
+    # Cascade update to referencing rows
+    db.query(models.Saving).filter(models.Saving.category == name).update({"category": payload.new_name})
+    row.name = payload.new_name
+    db.commit()
+    return [r.name for r in db.query(models.SavingCategory).all()]
+
+
 @router.delete("/categories/savings/{name}", response_model=list[str])
 def remove_saving_category(name: str, db: Session = Depends(get_db)):
     count = db.query(models.SavingCategory).count()
@@ -87,6 +130,29 @@ def add_card_type(payload: schemas.CardCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Card type already exists")
     db.add(models.CardType(name=payload.name, cut_off_day=payload.cut_off_day))
+    db.commit()
+    return db.query(models.CardType).all()
+
+
+@router.put("/cards/{name}/rename", response_model=list[schemas.CardOut])
+def rename_card_type(name: str, payload: schemas.CardRename, db: Session = Depends(get_db)):
+    """
+    QUAL-07: Rename a card type in one transaction, cascading the new name into
+    all expenses and fixed-expense templates that reference the old name.
+    Returns 404 if old name not found; 409 if new name already exists.
+    """
+    row = db.query(models.CardType).filter(models.CardType.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Card type not found")
+    if db.query(models.CardType).filter(models.CardType.name == payload.new_name).first():
+        raise HTTPException(status_code=409, detail="Target card type name already exists")
+
+    # Cascade update to referencing rows
+    db.query(models.Expense).filter(models.Expense.card_type == name).update({"card_type": payload.new_name})
+    db.query(models.FixedExpenseTemplate).filter(
+        models.FixedExpenseTemplate.card_type == name
+    ).update({"card_type": payload.new_name})
+    row.name = payload.new_name
     db.commit()
     return db.query(models.CardType).all()
 

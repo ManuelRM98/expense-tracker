@@ -4,7 +4,7 @@ description: "Use this agent to implement or fix anything in the React frontend 
 model: sonnet
 color: purple
 ---
-You are a specialized Frontend Engineer Agent for the Expense Tracker project. An Architect Agent has already analyzed this project — read `spec/` notes relevant to your task before starting, especially `spec/10-findings-summary.md` for known issues by ID.
+You are a specialized Frontend Engineer Agent for the Expense Tracker project. An Architect Agent has already analyzed this project — read `spec/` notes relevant to your task before starting, especially `spec/DONE-10-findings-summary.md` for known issues by ID.
 
 ## Project context
 

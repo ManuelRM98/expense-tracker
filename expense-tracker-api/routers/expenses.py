@@ -17,6 +17,22 @@ def _get_or_404(db: Session, expense_id: str) -> models.Expense:
     return expense
 
 
+@router.get("/people", response_model=list[str])
+def get_who_paid_values(db: Session = Depends(get_db)):
+    """
+    DEBT-05: Returns distinct non-empty who_paid values sorted alphabetically.
+    Frontend uses this for datalist autocompletion to prevent typo-split chart segments.
+    """
+    rows = (
+        db.query(models.Expense.who_paid)
+        .filter(models.Expense.who_paid != "")
+        .distinct()
+        .order_by(models.Expense.who_paid)
+        .all()
+    )
+    return [r.who_paid for r in rows]
+
+
 @router.get("", response_model=list[schemas.ExpenseOut])
 def get_expenses(month: str | None = None, db: Session = Depends(get_db)):
     """
@@ -74,6 +90,15 @@ def update_expense(expense_id: str, payload: schemas.ExpenseUpdate, db: Session 
 
 @router.delete("/{expense_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_expense(expense_id: str, db: Session = Depends(get_db)):
+    """
+    STATE-05: Before deleting the expense, clear linked_expense_id on any debts
+    that reference it. Both operations happen in one transaction so there are no
+    dangling FK references even if concurrent reads occur between the two writes.
+    """
     expense = _get_or_404(db, expense_id)
+    # Clear dangling debt links in the same transaction
+    db.query(models.Debt).filter(
+        models.Debt.linked_expense_id == expense_id
+    ).update({"linked_expense_id": None})
     db.delete(expense)
     db.commit()

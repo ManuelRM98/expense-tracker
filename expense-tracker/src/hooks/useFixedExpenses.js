@@ -6,7 +6,9 @@ export function useFixedExpenses() {
 
   // ── Load templates on mount ────────────────────────────────────────────────
   useEffect(() => {
-    api.getTemplates().then(setTemplates);
+    api.getTemplates().then(setTemplates).catch(err => {
+      console.error('useFixedExpenses: failed to load templates:', err);
+    });
   }, []);
 
   // ── Template CRUD ──────────────────────────────────────────────────────────
@@ -32,10 +34,10 @@ export function useFixedExpenses() {
   }, []);
 
   // ── Auto-generation ────────────────────────────────────────────────────────
-  // The server replicates all generation logic (future-month guard, createdAt gate,
-  // day clamping, duplicate log check). On success it returns the newly created
-  // expense objects (complete, with IDs). bulkAddExpenses merges them into
-  // local state without an extra API round-trip.
+  // DEBT-04: the SERVER owns all generation logic (future-month guard, createdAt gate,
+  // day clamping, duplicate log check). The frontend delegates entirely via POST.
+  // On success the server returns the newly created expense objects (complete, with IDs).
+  // bulkAddExpenses merges them into local state without an extra API round-trip.
 
   const generateForMonth = useCallback(async (monthKey, bulkAddExpenses) => {
     const generated = await api.generateForMonth(monthKey);

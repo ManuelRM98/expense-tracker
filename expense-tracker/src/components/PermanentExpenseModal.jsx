@@ -16,7 +16,19 @@ export default function PermanentExpenseModal({
   expenseCategories, onAddCategory, onRemoveCategory,
   editing,
 }) {
-  const [form,          setForm]          = useState(EMPTY);
+  // State is initialised from props at mount; parent remounts via key when open/editing changes
+  const [form, setForm] = useState(() => editing
+    ? {
+        name:       editing.name,
+        amount:     Number(editing.amount).toLocaleString('es-CO'),
+        category:   editing.category ?? '',
+        dayOfMonth: String(editing.dayOfMonth),
+        whoPaid:    editing.whoPaid,
+        cardPay:    editing.cardPay,
+        cardType:   editing.cardType ?? '',
+      }
+    : EMPTY
+  );
   const [addingCard,    setAddingCard]    = useState(false);
   const [newCard,       setNewCard]       = useState('');
   const [managingCards, setManagingCards] = useState(false);
@@ -24,27 +36,6 @@ export default function PermanentExpenseModal({
   const [newCat,        setNewCat]        = useState('');
   const [managingCats,  setManagingCats]  = useState(false);
   const [errors,        setErrors]        = useState({});
-
-  useEffect(() => {
-    if (open) {
-      if (editing) {
-        setForm({
-          name:       editing.name,
-          amount:     Number(editing.amount).toLocaleString('es-CO'),
-          category:   editing.category ?? '',
-          dayOfMonth: String(editing.dayOfMonth),
-          whoPaid:    editing.whoPaid,
-          cardPay:    editing.cardPay,
-          cardType:   editing.cardType ?? '',
-        });
-      } else {
-        setForm(EMPTY);
-      }
-      setErrors({});
-      setAddingCard(false); setNewCard(''); setManagingCards(false);
-      setAddingCat(false);  setNewCat('');  setManagingCats(false);
-    }
-  }, [open, editing]);
 
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };

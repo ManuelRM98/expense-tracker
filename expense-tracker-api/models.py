@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Boolean, Date, ForeignKey
+from sqlalchemy import Column, String, Integer, Boolean, Date, ForeignKey, UniqueConstraint
 from database import Base
 
 
@@ -6,22 +6,22 @@ class Expense(Base):
     __tablename__ = "expenses"
 
     id        = Column(String, primary_key=True, index=True)
-    date      = Column(Date,    nullable=False)
+    date      = Column(Date,    nullable=False, index=True)      # PERF-05: index for date queries
     desc      = Column(String,  nullable=False)
     category  = Column(String,  nullable=False)
-    price     = Column(Integer, nullable=False)          # Colombian pesos, integer
-    card_pay      = Column(String,  nullable=False)          # "Yes" | "No"
+    price     = Column(Integer, nullable=False)                  # Colombian pesos, integer
+    card_pay      = Column(String,  nullable=False)              # "Yes" | "No"
     who_paid      = Column(String,  nullable=False)
     card_type     = Column(String,  nullable=False, default="")  # empty when card_pay="No"
     cost_type     = Column(String,  nullable=False, default="variable")  # "fixed" | "variable"
-    billing_month = Column(String,  nullable=True)           # "YYYY-MM"; None = use date
+    billing_month = Column(String,  nullable=True, index=True)   # "YYYY-MM"; None = use date; PERF-05
 
 
 class Saving(Base):
     __tablename__ = "savings"
 
     id        = Column(String, primary_key=True, index=True)
-    date      = Column(Date,   nullable=False)
+    date      = Column(Date,   nullable=False, index=True)       # PERF-05: index for date queries
     desc      = Column(String, nullable=False)
     category  = Column(String, nullable=False)
     price     = Column(Integer, nullable=False)
@@ -66,10 +66,11 @@ class FixedExpenseTemplate(Base):
 
 
 class FixedExpenseLog(Base):
-    """Tracks which (template, month) pairs have already been generated."""
+    """Tracks which (template, month) pairs have already been generated.
+    STATE-02: unique constraint ensures race-safe idempotency on concurrent inserts."""
     __tablename__ = "fixed_expense_logs"
 
-    log_key = Column(String, primary_key=True)   # "{template_id}_{YYYY-MM}"
+    log_key = Column(String, primary_key=True)   # "{template_id}_{YYYY-MM}" — PK is already unique
 
 
 class ExpenseCategory(Base):
@@ -111,7 +112,7 @@ class Debt(Base):
     amount             = Column(Integer, nullable=False)              # original debt amount in COP
     linked_expense_id  = Column(String,  nullable=True)               # optional FK to expenses.id
     is_settled         = Column(Boolean, nullable=False, default=False)
-    created_date       = Column(Date,    nullable=False)
+    created_date       = Column(Date,    nullable=False, index=True)  # PERF-05: index for date queries
     settled_date       = Column(Date,    nullable=True)
 
 

@@ -3,3 +3,12 @@ __pycache__
 *.pyc
 *.pyo
 .git
+.pytest_cache
+tests
+# SEC-01 / DOCKER-07: never bake user data into images
+*.db
+*.db-wal
+*.db-shm
+# SEC-06: never bake env files (future PostgreSQL credentials) into images
+.env
+*.env

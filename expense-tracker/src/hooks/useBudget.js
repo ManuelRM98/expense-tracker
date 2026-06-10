@@ -8,6 +8,8 @@ export function useBudget() {
   // map of "YYYY-MM" -> MonthBudget (only overrides, not inherited defaults)
   const [monthOverrides,  setMonthOverrides]   = useState({});
   const [budgetLoaded,    setBudgetLoaded]     = useState(false);
+  // STATE-07: expose load error so App can surface a toast/banner
+  const [budgetLoadError, setBudgetLoadError]  = useState(null);
 
   useEffect(() => {
     Promise.all([
@@ -19,8 +21,12 @@ export function useBudget() {
         const map = {};
         overrides.forEach(o => { map[o.monthKey] = o; });
         setMonthOverrides(map);
+        setBudgetLoadError(null);
       })
-      .catch(() => {})
+      .catch((err) => {
+        // STATE-07: surface error instead of silently swallowing — fallback values will be used
+        setBudgetLoadError(err?.message ?? 'Could not load budget configuration. Using default values.');
+      })
       .finally(() => setBudgetLoaded(true));
   }, []);
 
@@ -89,6 +95,7 @@ export function useBudget() {
   return {
     defaultBudget,
     budgetLoaded,
+    budgetLoadError,
     getBudgetForMonth,
     saveDefaultBudget,
     saveMonthBudget,

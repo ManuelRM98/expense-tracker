@@ -14,6 +14,7 @@ export default function FixedExpensesPage({
   cardTypes, onAddCard, onRemoveCard,
   expenseCategories, onAddCategory, onRemoveCategory,
   onBack,
+  showToast,
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing,   setEditing]   = useState(null);
@@ -21,14 +22,29 @@ export default function FixedExpensesPage({
   function openAdd()       { setEditing(null); setModalOpen(true); }
   function openEdit(tmpl)  { setEditing(tmpl); setModalOpen(true); }
 
-  function handleSave(data) {
-    if (editing) onUpdate(editing.id, data);
-    else         onAdd(data);
+  async function handleSave(data) {
+    try {
+      if (editing) {
+        await onUpdate(editing.id, data);
+        showToast?.('Permanent expense updated.');
+      } else {
+        await onAdd(data);
+        showToast?.('Permanent expense added.');
+      }
+      setModalOpen(false);
+    } catch (err) {
+      showToast?.(`Error: ${err.message ?? 'Could not save permanent expense.'}`);
+    }
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (!window.confirm('Delete this permanent expense? It will no longer auto-generate entries, but existing entries in your expense list are not affected.')) return;
-    onDelete(id);
+    try {
+      await onDelete(id);
+      showToast?.('Permanent expense deleted.');
+    } catch (err) {
+      showToast?.(`Error: ${err.message ?? 'Could not delete permanent expense.'}`);
+    }
   }
 
   const active   = templates.filter(t =>  t.isActive);
@@ -116,6 +132,7 @@ export default function FixedExpensesPage({
 
       {/* ── Modal ── */}
       <PermanentExpenseModal
+        key={`perm-${modalOpen ? (editing?.id ?? 'new') : 'closed'}`}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}

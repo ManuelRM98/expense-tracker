@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from uuid import uuid4
@@ -46,8 +48,23 @@ def _get_payments(db: Session, debt_id: str) -> list[models.DebtPayment]:
 
 @router.get("", response_model=list[schemas.DebtOut])
 def get_debts(db: Session = Depends(get_db)):
+    """PERF-01: Single bulk payment query instead of N+1 per-debt queries."""
     debts = db.query(models.Debt).order_by(models.Debt.created_date.desc()).all()
-    return [_build_debt_out(d, _get_payments(db, d.id)) for d in debts]
+    if not debts:
+        return []
+
+    debt_ids = [d.id for d in debts]
+    all_payments = (
+        db.query(models.DebtPayment)
+        .filter(models.DebtPayment.debt_id.in_(debt_ids))
+        .order_by(models.DebtPayment.date.asc())
+        .all()
+    )
+    payments_by_debt: dict[str, list[models.DebtPayment]] = defaultdict(list)
+    for p in all_payments:
+        payments_by_debt[p.debt_id].append(p)
+
+    return [_build_debt_out(d, payments_by_debt[d.id]) for d in debts]
 
 
 @router.post("", response_model=schemas.DebtOut, status_code=status.HTTP_201_CREATED)

@@ -1,9 +1,15 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
+/** Part C.4: send X-API-Key header on every request if VITE_API_KEY is set */
+const API_KEY = import.meta.env.VITE_API_KEY || null;
+
 // ── HTTP helper ────────────────────────────────────────────────────────────────
 
 async function request(method, path, body = null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const headers = { 'Content-Type': 'application/json' };
+  // Part C.4: include X-API-Key if configured via VITE_API_KEY env var
+  if (API_KEY) headers['X-API-Key'] = API_KEY;
+  const opts = { method, headers };
   if (body !== null) opts.body = JSON.stringify(body);
   const res = await fetch(`${BASE_URL}${path}`, opts);
   if (!res.ok) {
@@ -41,7 +47,8 @@ function fromExpense(d) {
     who_paid:      d.whoPaid,
     card_type:     d.cardType,
     cost_type:     d.costType,
-    billing_month: d.billingMonth ?? null,
+    // Part C.3: send null (never "") — server validates ^\d{4}-\d{2}$ and rejects empty string
+    billing_month: d.billingMonth || null,
   };
 }
 
@@ -104,8 +111,13 @@ function fromTemplate(d) {
 
 // ── Expenses ───────────────────────────────────────────────────────────────────
 
-export async function getExpenses() {
-  const data = await request('GET', '/expenses');
+/**
+ * PERF-03: accepts an optional monthKey ("YYYY-MM") to fetch only that month.
+ * When omitted, fetches all expenses (legacy — avoid for new call sites).
+ */
+export async function getExpenses(monthKey) {
+  const path = monthKey ? `/expenses?month=${monthKey}` : '/expenses';
+  const data = await request('GET', path);
   return data.map(toExpense);
 }
 
@@ -125,8 +137,13 @@ export async function deleteExpense(id) {
 
 // ── Savings ────────────────────────────────────────────────────────────────────
 
-export async function getSavings() {
-  const data = await request('GET', '/savings');
+/**
+ * PERF-03: accepts an optional monthKey ("YYYY-MM") to fetch only that month.
+ * When omitted, fetches all savings (legacy — avoid for new call sites).
+ */
+export async function getSavings(monthKey) {
+  const path = monthKey ? `/savings?month=${monthKey}` : '/savings';
+  const data = await request('GET', path);
   return data.map(toSaving);
 }
 
@@ -205,6 +222,13 @@ export async function setConfig(key, value) {
   return request('PUT', `/config/${key}`, { value: String(value) });
 }
 
+// ── People (distinct who_paid values) ─────────────────────────────────────────
+
+/** Part C.1: GET /expenses/people → string[] of distinct who_paid values */
+export async function getPeople() {
+  return request('GET', '/expenses/people');
+}
+
 // ── Expense categories ─────────────────────────────────────────────────────────
 
 export async function getExpenseCategories() {
@@ -219,6 +243,11 @@ export async function removeExpenseCategory(name) {
   return request('DELETE', `/categories/expenses/${encodeURIComponent(name)}`);
 }
 
+/** Part C.2: PUT /categories/expenses/{name} body {new_name} → string[] */
+export async function renameExpenseCategory(oldName, newName) {
+  return request('PUT', `/categories/expenses/${encodeURIComponent(oldName)}`, { new_name: newName });
+}
+
 // ── Saving categories ──────────────────────────────────────────────────────────
 
 export async function getSavingCategories() {
@@ -231,6 +260,11 @@ export async function addSavingCategory(name) {
 
 export async function removeSavingCategory(name) {
   return request('DELETE', `/categories/savings/${encodeURIComponent(name)}`);
+}
+
+/** Part C.2: PUT /categories/savings/{name} body {new_name} → string[] */
+export async function renameSavingCategory(oldName, newName) {
+  return request('PUT', `/categories/savings/${encodeURIComponent(oldName)}`, { new_name: newName });
 }
 
 // ── Card types ─────────────────────────────────────────────────────────────────
@@ -252,6 +286,12 @@ export async function removeCardType(name) {
 
 export async function updateCardCutOff(name, cutOffDay) {
   const data = await request('PATCH', `/cards/${encodeURIComponent(name)}`, { cut_off_day: cutOffDay });
+  return data.map(toCard);
+}
+
+/** Part C.2: PUT /cards/{name}/rename body {new_name} → CardOut[] */
+export async function renameCard(oldName, newName) {
+  const data = await request('PUT', `/cards/${encodeURIComponent(oldName)}/rename`, { new_name: newName });
   return data.map(toCard);
 }
 
@@ -284,6 +324,26 @@ export async function toggleTemplate(id) {
 export async function generateForMonth(monthKey) {
   const data = await request('POST', `/fixed-expenses/generate/${monthKey}`);
   return data.map(toExpense);   // Returns complete expense objects with IDs from the DB
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+function toTrendPoint(d) {
+  return {
+    monthKey:      d.month_key,
+    totalExpenses: d.total_expenses,
+    totalSavings:  d.total_savings,
+  };
+}
+
+/**
+ * PERF-03: GET /analytics/trend?months=N
+ * Returns TrendPoint[] { monthKey, totalExpenses, totalSavings }
+ * respecting billing_month server-side (PERF-02 / BUG-07 fix).
+ */
+export async function getTrend(months = 12) {
+  const data = await request('GET', `/analytics/trend?months=${months}`);
+  return data.map(toTrendPoint);
 }
 
 // ── Budget Allocation ──────────────────────────────────────────────────────────

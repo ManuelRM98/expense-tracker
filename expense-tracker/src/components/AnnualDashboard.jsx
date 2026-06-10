@@ -14,8 +14,12 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
   const isCurrentYear = year === CURRENT_YEAR;
   const maxMonthIdx = isCurrentYear ? CURRENT_MONTH : 11;
 
+  // BUG-06: filter by effective month (billingMonth ?? date[:7]) to match monthly view
   const yearExpenses = useMemo(() =>
-    expenses.filter(e => parseInt(e.date.split('-')[0]) === year),
+    expenses.filter(e => {
+      const effectiveMonth = e.billingMonth ?? e.date.substring(0, 7);
+      return parseInt(effectiveMonth.split('-')[0]) === year;
+    }),
     [expenses, year]
   );
 
@@ -28,7 +32,11 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
     Array.from({ length: maxMonthIdx + 1 }, (_, i) => {
       const m = i + 1;
       const monthKey = `${year}-${String(m).padStart(2, '0')}`;
-      const mExp = yearExpenses.filter(e => parseInt(e.date.split('-')[1]) === m);
+      // BUG-06: group by effective month (billingMonth ?? date[:7])
+      const mExp = yearExpenses.filter(e => {
+        const effectiveMonth = e.billingMonth ?? e.date.substring(0, 7);
+        return parseInt(effectiveMonth.split('-')[1]) === m;
+      });
       const mSav = yearSavings.filter(sv => parseInt(sv.date.split('-')[1]) === m);
       return {
         month: MONTH_SHORT[i],

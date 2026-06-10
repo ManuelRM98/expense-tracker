@@ -1,9 +1,11 @@
+import { useState, useEffect } from 'react';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
   LineChart, Line,
 } from 'recharts';
 import { fmtCOP, MONTH_SHORT } from '../utils/format';
+import { getTrend } from '../services/api';
 
 // ── Palette ──────────────────────────────────────────────────
 const COLORS = ['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa','#ffcc00'];
@@ -133,41 +135,46 @@ export function ByPersonChart({ expenses }) {
   );
 }
 
-// ── 4. Line — Monthly Trend (all data) ──────────────────────
-export function MonthlyTrendChart({ expenses }) {
-  // Build last 12 months
-  const now = new Date();
-  const months = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth(), label: `${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}` });
-  }
+// ── 4. Line — Monthly Trend (all data via backend analytics) ────────────────
+// PERF-03: fetches from GET /analytics/trend instead of receiving all expenses.
+// BUG-07: server-side aggregation respects billing_month (PERF-02 fix).
+export function MonthlyTrendChart() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const data = months.map(m => {
-    const total = expenses
-      .filter(e => {
-        const [y, mo] = e.date.split('-');
-        return parseInt(y) === m.year && parseInt(mo) - 1 === m.month;
-      })
-      .reduce((s, e) => s + e.price, 0);
-    return { name: `${MONTH_SHORT[m.month]} ${String(m.year).slice(2)}`, total };
-  });
+  useEffect(() => {
+    getTrend(12).then(points => {
+      const formatted = points.map(p => ({
+        name: (() => {
+          const [y, m] = p.monthKey.split('-');
+          return `${MONTH_SHORT[parseInt(m, 10) - 1]} ${String(y).slice(2)}`;
+        })(),
+        total: p.totalExpenses,
+      }));
+      setData(formatted);
+      setLoading(false);
+    }).catch(err => { console.error('MonthlyTrendChart fetch failed:', err); setLoading(false); });
+  }, []);
 
   const hasData = data.some(d => d.total > 0);
 
   return (
-    <ChartCard title="Monthly Trend (12 months)" empty={!hasData}>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top:4, right:8, left:8, bottom:0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="name" tick={{ fontSize:11, fill:'var(--text-secondary)' }} axisLine={false} tickLine={false} />
-          <YAxis hide />
-          <Tooltip content={<TooltipBox />} />
-          <Line type="monotone" dataKey="total" name="Total" stroke="var(--accent)"
-                strokeWidth={2.5} dot={{ r:3, fill:'var(--accent)' }}
-                activeDot={{ r:5 }} />
-        </LineChart>
-      </ResponsiveContainer>
+    <ChartCard title="Monthly Trend (12 months)" empty={!loading && !hasData}>
+      {loading ? (
+        <div style={c.empty}>Loading…</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={data} margin={{ top:4, right:8, left:8, bottom:0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize:11, fill:'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+            <YAxis hide />
+            <Tooltip content={<TooltipBox />} />
+            <Line type="monotone" dataKey="total" name="Total" stroke="var(--accent)"
+                  strokeWidth={2.5} dot={{ r:3, fill:'var(--accent)' }}
+                  activeDot={{ r:5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </ChartCard>
   );
 }
@@ -377,40 +384,45 @@ const cc = {
   },
 };
 
-// ── 9. Line — Savings Trend (12 months) ─────────────────────
-export function SavingsTrendChart({ savings }) {
-  const now = new Date();
-  const months = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth() });
-  }
+// ── 9. Line — Savings Trend (12 months) via backend analytics ───────────────
+// PERF-03: fetches from GET /analytics/trend instead of receiving all savings.
+export function SavingsTrendChart() {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const data = months.map(m => {
-    const total = savings
-      .filter(sv => {
-        const [y, mo] = sv.date.split('-');
-        return parseInt(y) === m.year && parseInt(mo) - 1 === m.month;
-      })
-      .reduce((s, sv) => s + sv.price, 0);
-    return { name: `${MONTH_SHORT[m.month]} ${String(m.year).slice(2)}`, total };
-  });
+  useEffect(() => {
+    getTrend(12).then(points => {
+      const formatted = points.map(p => ({
+        name: (() => {
+          const [y, m] = p.monthKey.split('-');
+          return `${MONTH_SHORT[parseInt(m, 10) - 1]} ${String(y).slice(2)}`;
+        })(),
+        total: p.totalSavings,
+      }));
+      setData(formatted);
+      setLoading(false);
+    }).catch(err => { console.error('SavingsTrendChart fetch failed:', err); setLoading(false); });
+  }, []);
 
   const hasData = data.some(d => d.total > 0);
 
   return (
-    <ChartCard title="Savings Trend (12 months)" empty={!hasData}>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
-          <YAxis hide />
-          <Tooltip content={<TooltipBox />} />
-          <Line type="monotone" dataKey="total" name="Savings" stroke="var(--savings)"
-                strokeWidth={2.5} dot={{ r: 3, fill: 'var(--savings)' }}
-                activeDot={{ r: 5 }} />
-        </LineChart>
-      </ResponsiveContainer>
+    <ChartCard title="Savings Trend (12 months)" empty={!loading && !hasData}>
+      {loading ? (
+        <div style={c.empty}>Loading…</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+            <YAxis hide />
+            <Tooltip content={<TooltipBox />} />
+            <Line type="monotone" dataKey="total" name="Savings" stroke="var(--savings)"
+                  strokeWidth={2.5} dot={{ r: 3, fill: 'var(--savings)' }}
+                  activeDot={{ r: 5 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      )}
     </ChartCard>
   );
 }

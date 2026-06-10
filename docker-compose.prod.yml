@@ -1,0 +1,45 @@
+# Production orchestration (DOCKER-01/02/03): no source bind mounts, no --reload,
+# nginx-served frontend build, SQLite persisted in a named volume.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Note: the database lives in the `db_data` volume at /app/data/expense_tracker.db —
+# it survives image rebuilds and `docker compose down` (but not `down -v`).
+services:
+  frontend:
+    build:
+      context: ./expense-tracker
+      target: prod
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./expense-tracker-api
+      target: prod
+    ports:
+      - "8000:8000"
+    volumes:
+      - db_data:/app/data # DOCKER-02 — database persisted independently of the image
+    environment:
+      - DATABASE_URL=sqlite:////app/data/expense_tracker.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  db_data:

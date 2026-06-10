@@ -12,8 +12,15 @@ export function fmtCOP(n) {
 }
 
 export function fmtDate(iso) {
-  const [y, m, d] = iso.split('-');
-  return `${MONTH_SHORT[parseInt(m, 10) - 1]} ${parseInt(d, 10)}, ${y}`;
+  // QUAL-06: guard against null/undefined/malformed input
+  if (!iso || typeof iso !== 'string') return '';
+  const parts = iso.split('-');
+  if (parts.length < 3) return iso; // return raw string rather than crashing
+  const [y, m, d] = parts;
+  const mIdx = parseInt(m, 10) - 1;
+  const day = parseInt(d, 10);
+  if (isNaN(mIdx) || mIdx < 0 || mIdx > 11 || isNaN(day)) return iso;
+  return `${MONTH_SHORT[mIdx]} ${day}, ${y}`;
 }
 
 export function uid() {

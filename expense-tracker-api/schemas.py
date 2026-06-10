@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+import re
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Literal, Optional
 from datetime import date
 
@@ -16,6 +17,20 @@ class ExpenseBase(BaseModel):
     cost_type:     Literal["fixed", "variable"] = "variable"
     billing_month: str | None = None   # "YYYY-MM"; None = use date for month filtering
 
+    @field_validator("billing_month")
+    @classmethod
+    def validate_billing_month(cls, v):
+        """DEBT-06: enforce YYYY-MM format or None."""
+        if v is not None and not re.match(r"^\d{4}-\d{2}$", v):
+            raise ValueError("billing_month must be in YYYY-MM format (e.g. '2026-03')")
+        return v
+
+    @field_validator("who_paid")
+    @classmethod
+    def normalize_who_paid(cls, v):
+        """DEBT-05: strip surrounding whitespace to prevent typo-split chart segments."""
+        return v.strip()
+
 class ExpenseCreate(ExpenseBase):
     pass
 
@@ -24,8 +39,7 @@ class ExpenseUpdate(ExpenseBase):
 
 class ExpenseOut(ExpenseBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Savings ────────────────────────────────────────────────────────────────────
@@ -46,8 +60,7 @@ class SavingUpdate(SavingBase):
 
 class SavingOut(SavingBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Global Config ──────────────────────────────────────────────────────────────
@@ -55,8 +68,7 @@ class SavingOut(SavingBase):
 class GlobalConfigOut(BaseModel):
     key:   str
     value: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class GlobalConfigSet(BaseModel):
     value: str
@@ -90,8 +102,7 @@ class IncomeEntryOut(BaseModel):
     original_amount: int | None
     exchange_rate:   int | None
     amount_cop:      int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Fixed Expense Templates ────────────────────────────────────────────────────
@@ -115,8 +126,7 @@ class TemplateOut(TemplateBase):
     id:         str
     is_active:  bool
     created_at: str   # "YYYY-MM"
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Categories & Cards ─────────────────────────────────────────────────────────
@@ -126,8 +136,11 @@ class CategoryCreate(BaseModel):
 
 class CategoryOut(BaseModel):
     name: str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+class CategoryRename(BaseModel):
+    """QUAL-07: payload for rename endpoints."""
+    new_name: str
 
 class CardCreate(BaseModel):
     name:        str
@@ -136,11 +149,14 @@ class CardCreate(BaseModel):
 class CardCutOffUpdate(BaseModel):
     cut_off_day: int | None = None
 
+class CardRename(BaseModel):
+    """QUAL-07: payload for card-type rename endpoint."""
+    new_name: str
+
 class CardOut(BaseModel):
     name:        str
     cut_off_day: int | None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Analytics ──────────────────────────────────────────────────────────────────
@@ -200,8 +216,7 @@ class DebtPaymentOut(BaseModel):
     amount:  int
     date:    date
     note:    str
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DebtCreate(BaseModel):
     direction:         Literal["they_owe_me", "i_owe_them"]
@@ -248,5 +263,4 @@ class MonthBudgetOut(BaseModel):
     variable_pct: int
     savings_pct:  int
     is_override:  bool   # True when month_key != "default"
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

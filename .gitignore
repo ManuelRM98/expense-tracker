@@ -27,6 +27,14 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Python virtualenv
+venv/
+
+# SQLite databases (SEC-01 — never commit user data)
+*.db
+*.db-wal
+*.db-shm
+
 # Claude memory
 .claude/agent-memory/
 .claude/settings.local.json

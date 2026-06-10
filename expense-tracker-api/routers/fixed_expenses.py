@@ -2,7 +2,8 @@ import calendar
 from datetime import date
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import models
@@ -73,8 +74,14 @@ def toggle_template(template_id: str, db: Session = Depends(get_db)):
 
 # ── Auto-generation ────────────────────────────────────────────────────────────
 
+MONTH_KEY_PATTERN = r"^\d{4}-\d{2}$"
+
+
 @router.post("/generate/{month_key}", response_model=list[schemas.ExpenseOut])
-def generate_for_month(month_key: str, db: Session = Depends(get_db)):
+def generate_for_month(
+    month_key: str = Path(pattern=MONTH_KEY_PATTERN),  # SEC-04: reject malformed month keys
+    db: Session = Depends(get_db),
+):
     """
     Server-side port of generateForMonth() from useFixedExpenses.js.
 
@@ -139,7 +146,15 @@ def generate_for_month(month_key: str, db: Session = Depends(get_db)):
         db.add(models.FixedExpenseLog(log_key=log_key))
         generated.append(expense)
 
-    db.commit()
+    # STATE-02: Wrap commit in IntegrityError guard for race-safe idempotency.
+    # If two concurrent requests race to insert the same log_key, the second
+    # will get a unique-constraint violation — return empty list (already done).
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return []
+
     for e in generated:
         db.refresh(e)
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { fmtCOP } from '../utils/format';
 
 const TYPES = [
@@ -17,25 +17,19 @@ const DEFAULT = {
 };
 
 export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClose }) {
-  const [form,   setForm]   = useState(DEFAULT);
-  const [errors, setErrors] = useState({});
-
-  useEffect(() => {
-    if (!open) return;
-    if (entry) {
-      setForm({
+  // State is initialised from props at mount; parent remounts via key when open/entry changes
+  const [form, setForm] = useState(() => entry
+    ? {
         incomeType:     entry.incomeType,
         description:    entry.description,
         currency:       entry.currency,
         originalAmount: entry.originalAmount != null ? String(entry.originalAmount) : '',
         exchangeRate:   entry.exchangeRate   != null ? String(entry.exchangeRate)   : '',
         amountCop:      String(entry.amountCop),
-      });
-    } else {
-      setForm(DEFAULT);
-    }
-    setErrors({});
-  }, [open, entry]);
+      }
+    : DEFAULT
+  );
+  const [errors, setErrors] = useState({});
 
   function set(field, val) {
     setForm(f => {

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
 import models
@@ -68,8 +68,14 @@ def set_default_budget(payload: schemas.MonthBudgetSet, db: Session = Depends(ge
     return _row_to_out(row)
 
 
+MONTH_KEY_PATTERN = r"^\d{4}-\d{2}$"
+
+
 @router.get("/{month_key}", response_model=schemas.MonthBudgetOut)
-def get_month_budget(month_key: str, db: Session = Depends(get_db)):
+def get_month_budget(
+    month_key: str = Path(pattern=MONTH_KEY_PATTERN),  # SEC-04: rejects "default" and malformed keys
+    db: Session = Depends(get_db),
+):
     """Returns effective budget for a month: override if it exists, else global default."""
     row = db.query(models.MonthBudget).filter(models.MonthBudget.month_key == month_key).first()
     if row:
@@ -78,7 +84,11 @@ def get_month_budget(month_key: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{month_key}", response_model=schemas.MonthBudgetOut)
-def set_month_budget(month_key: str, payload: schemas.MonthBudgetSet, db: Session = Depends(get_db)):
+def set_month_budget(
+    month_key: str = Path(pattern=MONTH_KEY_PATTERN),  # SEC-04
+    payload: schemas.MonthBudgetSet = ...,
+    db: Session = Depends(get_db),
+):
     """Creates or updates a monthly budget override. Must sum to 100."""
     if month_key == DEFAULT_KEY:
         raise HTTPException(status_code=400, detail="Use PUT /budget/default for global defaults.")
@@ -103,7 +113,10 @@ def set_month_budget(month_key: str, payload: schemas.MonthBudgetSet, db: Sessio
 
 
 @router.delete("/{month_key}", status_code=204)
-def delete_month_budget(month_key: str, db: Session = Depends(get_db)):
+def delete_month_budget(
+    month_key: str = Path(pattern=MONTH_KEY_PATTERN),  # SEC-04
+    db: Session = Depends(get_db),
+):
     """Removes a monthly override so the month falls back to the global default."""
     if month_key == DEFAULT_KEY:
         raise HTTPException(status_code=400, detail="Cannot delete the global default.")
