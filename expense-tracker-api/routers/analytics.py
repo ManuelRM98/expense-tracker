@@ -23,11 +23,11 @@ def _month_summary(month_key: str, db: Session) -> schemas.MonthlySummary:
     savings = db.query(models.Saving).filter(
         models.Saving.date.like(f"{month_key}%")
     ).all()
-    income_row = db.query(models.Income).filter(
-        models.Income.month_key == month_key
-    ).first()
+    income_rows = db.query(models.IncomeEntry).filter(
+        models.IncomeEntry.month_key == month_key
+    ).all()
 
-    income         = income_row.amount if income_row else 0
+    income         = sum(r.amount_cop for r in income_rows)
     total_expenses = sum(e.price for e in expenses)
     total_savings  = sum(s.price for s in savings)
     card_total     = sum(e.price for e in expenses if e.card_pay == "Yes")
@@ -71,13 +71,13 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
     savings = db.query(models.Saving).filter(
         models.Saving.date.like(f"{year}-%")
     ).all()
-    income_rows = db.query(models.Income).filter(
-        models.Income.month_key.like(f"{year}-%")
+    income_rows = db.query(models.IncomeEntry).filter(
+        models.IncomeEntry.month_key.like(f"{year}-%")
     ).all()
 
     total_expenses = sum(e.price for e in expenses)
     total_savings  = sum(s.price for s in savings)
-    total_income   = sum(r.amount for r in income_rows)
+    total_income   = sum(r.amount_cop for r in income_rows)
 
     # Group expenses by month for the breakdown table
     exp_by_month: dict[str, int] = defaultdict(int)
@@ -87,7 +87,10 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
     for s in savings:
         sav_by_month[str(s.date)[:7]] += s.price
 
-    income_map = {r.month_key: r.amount for r in income_rows}
+    # Sum per month — a month can hold multiple income entries
+    income_map: dict[str, int] = defaultdict(int)
+    for r in income_rows:
+        income_map[r.month_key] += r.amount_cop
 
     active_months = sorted(set(exp_by_month) | set(sav_by_month) | set(income_map))
 
