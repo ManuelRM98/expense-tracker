@@ -20,8 +20,14 @@ export default function Header({ onAdd, addLabel, btnColor, onHome }) {
 
 const styles = {
   header: {
-    background: 'var(--surface)',
-    borderBottom: '1px solid var(--border)',
+    background: 'var(--surface-glass)',
+    backdropFilter: 'saturate(180%) blur(20px)',
+    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+    border: '1px solid var(--panel-edge)',
+    borderTop: 'none',
+    borderBottomLeftRadius: 'var(--radius-md)',
+    borderBottomRightRadius: 'var(--radius-md)',
+    boxShadow: 'var(--shadow-sm)',
     position: 'sticky',
     top: 0,
     zIndex: 100,
@@ -33,7 +39,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    height: 64,
+    height: 'var(--header-h)',
   },
   titleRow: {
     display: 'flex',
