@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { fmtCOP } from '../utils/format';
+import useIsMobile from '../hooks/useIsMobile';
+import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
+import { DragHandle } from '../utils/mobileModal';
 
 const TYPES = [
   { value: 'salary', label: 'Salary' },
@@ -75,6 +78,8 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
     });
   }
 
+  const isMobile = useIsMobile();
+
   if (!open) return null;
 
   const usd    = parseInt(form.originalAmount, 10) || 0;
@@ -82,8 +87,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
   const copVal = parseInt(form.amountCop,      10) || 0;
 
   return (
-    <div style={s.overlay} onClick={onClose}>
-      <div style={s.modal} onClick={e => e.stopPropagation()}>
+    <div style={getModalOverlayStyle(isMobile)} onClick={onClose}>
+      <div style={getModalStyle(isMobile, { maxWidth: 460 })} onClick={e => e.stopPropagation()}>
+        {isMobile && <DragHandle />}
         <div style={s.head}>
           <span style={s.headTitle}>{entry ? 'Edit Income' : 'Add Income'}</span>
           <button style={s.close} onClick={onClose}>✕</button>

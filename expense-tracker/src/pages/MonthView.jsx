@@ -347,7 +347,7 @@ export default function MonthView({
         )}
 
         {activeTab === 'charts' && income > 0 && (
-          <div style={s.rateStrip}>
+          <div className="rate-strip-grid" style={s.rateStrip}>
             <RateCard label="Expense Rate" value={`${Math.round((totalExp / income) * 100)}%`}  color="var(--danger)" />
             <RateCard label="Savings Rate" value={`${Math.round((totalSav / income) * 100)}%`}  color="var(--savings)" />
             <RateCard label="Free Cash"    value={`${Math.max(0, Math.round(((income - totalExp - totalSav) / income) * 100))}%`} color="var(--accent)" />

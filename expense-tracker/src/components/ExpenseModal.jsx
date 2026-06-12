@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { todayISO, MONTH_NAMES } from '../utils/format';
 import DatePicker from './DatePicker';
+import useIsMobile from '../hooks/useIsMobile';
+import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
+import { DragHandle } from '../utils/mobileModal';
 
 const EMPTY = {
   date:         '',
@@ -172,18 +175,21 @@ export default function ExpenseModal({
     if (form.category === name) set('category', '');
   }
 
+  const isMobile = useIsMobile();
+
   if (!open) return null;
 
   return (
-    <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={s.modal} role="dialog" aria-modal="true">
+    <div style={getModalOverlayStyle(isMobile)} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={getModalStyle(isMobile, { maxWidth: 500 })} role="dialog" aria-modal="true">
+        {isMobile && <DragHandle />}
         <div style={s.mHeader}>
           <span style={s.mTitle}>{editing ? 'Edit Expense' : cloning ? 'Duplicate Expense' : 'Add Expense'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
-          <div style={s.grid}>
+          <div className="modal-form-grid">
             {/* Date */}
             <div style={s.group}>
               <label style={s.label}>Date</label>
@@ -209,7 +215,7 @@ export default function ExpenseModal({
             </div>
 
             {/* Description */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <label style={s.label}>Description</label>
               <input
                 type="text" placeholder="What was this for?"
@@ -221,7 +227,7 @@ export default function ExpenseModal({
             </div>
 
             {/* Category */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <div style={s.labelRow}>
                 <label style={s.label}>Category</label>
                 <button type="button" style={s.manageBtn}
@@ -315,7 +321,7 @@ export default function ExpenseModal({
             </div>
 
             {/* Cost Type */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <label style={s.label}>Cost Type</label>
               <div style={s.segmentedControl}>
                 {['variable', 'fixed'].map((type, i, arr) => (
@@ -373,7 +379,7 @@ export default function ExpenseModal({
             </div>
 
             {/* Card Type */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <div style={s.labelRow}>
                 <label style={{ ...s.label, ...(form.cardPay !== 'Yes' ? s.labelDisabled : {}) }}>Card Type</label>
                 {form.cardPay === 'Yes' && (
@@ -437,7 +443,7 @@ export default function ExpenseModal({
 
             {/* Billing Month — only for fixed expenses paid without card */}
             {form.costType === 'fixed' && form.cardPay === 'No' && (
-              <div style={{ ...s.group, ...s.full }}>
+              <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
                 <label style={s.label}>Billing Month</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <select

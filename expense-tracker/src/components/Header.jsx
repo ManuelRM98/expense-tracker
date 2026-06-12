@@ -1,18 +1,43 @@
-export default function Header({ onAdd, addLabel, btnColor, onHome }) {
+/**
+ * isMobile — when true the action button collapses to icon-only to fit 375px
+ */
+export default function Header({ onAdd, addLabel, btnColor, onHome, isMobile }) {
   return (
-    <header style={styles.header}>
+    <header
+      style={{
+        ...styles.header,
+        // Mobile-only tighter side padding; desktop keeps the original 24px
+        padding: isMobile ? '0 16px' : '0 24px',
+        // Respect notch / status bar on iOS (0 on desktop)
+        paddingTop: 'env(safe-area-inset-top)',
+      }}
+    >
       <div style={styles.inner}>
         <div style={styles.titleRow}>
           <div style={styles.title} onClick={onHome} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onHome?.()} title="Go to Home">
             Expense<span style={{ color: 'var(--accent)' }}>Page</span>
           </div>
         </div>
-        <button style={{ ...styles.btn, background: btnColor ?? 'var(--accent)' }} onClick={onAdd}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-          {addLabel ?? 'Add Expense'}
-        </button>
+        {/* On mobile: icon-only button so title + button fit at 375px */}
+        {isMobile ? (
+          <button
+            style={{ ...styles.btnIcon, background: btnColor ?? 'var(--accent)' }}
+            onClick={onAdd}
+            title={addLabel ?? 'Add Expense'}
+            aria-label={addLabel ?? 'Add Expense'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </button>
+        ) : (
+          <button style={{ ...styles.btn, background: btnColor ?? 'var(--accent)' }} onClick={onAdd}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+            {addLabel ?? 'Add Expense'}
+          </button>
+        )}
       </div>
     </header>
   );
@@ -31,7 +56,6 @@ const styles = {
     position: 'sticky',
     top: 0,
     zIndex: 100,
-    padding: '0 24px',
   },
   inner: {
     maxWidth: 1100,
@@ -79,5 +103,21 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer',
     fontFamily: 'inherit',
+  },
+  // Icon-only variant for mobile header — meets ≥ 44px touch target
+  btnIcon: {
+    width: 44,
+    height: 44,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--accent)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 'var(--radius-sm)',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    flexShrink: 0,
+    WebkitTapHighlightColor: 'transparent',
   },
 };

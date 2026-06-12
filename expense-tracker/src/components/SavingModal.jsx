@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { todayISO } from '../utils/format';
 import DatePicker from './DatePicker';
+import useIsMobile from '../hooks/useIsMobile';
+import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
+import { DragHandle } from '../utils/mobileModal';
 
 const EMPTY = {
   date: '',
@@ -124,18 +127,21 @@ export default function SavingModal({
     if (form.category === name) set('category', '');
   }
 
+  const isMobile = useIsMobile();
+
   if (!open) return null;
 
   return (
-    <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={s.modal} role="dialog" aria-modal="true">
+    <div style={getModalOverlayStyle(isMobile)} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={getModalStyle(isMobile, { maxWidth: 500 })} role="dialog" aria-modal="true">
+        {isMobile && <DragHandle />}
         <div style={s.mHeader}>
           <span style={s.mTitle}>{editing ? 'Edit Saving' : cloning ? 'Duplicate Saving' : 'Add Saving'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
-          <div style={s.grid}>
+          <div className="modal-form-grid">
             {/* Date */}
             <div style={s.group}>
               <label style={s.label}>Date</label>
@@ -161,7 +167,7 @@ export default function SavingModal({
             </div>
 
             {/* Description */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <label style={s.label}>Description</label>
               <input
                 type="text" placeholder="What is this saving for?"
@@ -173,7 +179,7 @@ export default function SavingModal({
             </div>
 
             {/* Category */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <div style={s.labelRow}>
                 <label style={s.label}>Category</label>
                 <button type="button" style={s.manageBtn}

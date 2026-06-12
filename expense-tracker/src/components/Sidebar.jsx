@@ -220,7 +220,7 @@ const s = {
     WebkitBackdropFilter: 'saturate(180%) blur(20px)',
     position: 'sticky',
     top: 'calc(var(--header-h) + var(--panel-gap))',
-    height: 'calc(100vh - var(--header-h) - 2 * var(--panel-gap))',
+    height: 'calc(100dvh - var(--header-h) - 2 * var(--panel-gap))',
     margin: 'var(--panel-gap)',
     padding: '8px 6px',
     display: 'flex',

@@ -335,9 +335,9 @@ const s = {
   },
   catRow: {
     display: 'grid',
-    gridTemplateColumns: '22px 110px 1fr 150px',
+    gridTemplateColumns: '22px minmax(70px, 110px) 1fr minmax(90px, 150px)',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   catRank: {
     fontSize: 12,
@@ -373,10 +373,12 @@ const s = {
   tableWrap: {
     display: 'flex',
     flexDirection: 'column',
+    overflowX: 'auto',
   },
   tableHead: {
     display: 'grid',
     gridTemplateColumns: '110px 1fr 1fr 1fr 1fr',
+    minWidth: 420,
     padding: '6px 8px',
     fontSize: 11,
     fontWeight: 600,
@@ -389,6 +391,7 @@ const s = {
   tableRow: {
     display: 'grid',
     gridTemplateColumns: '110px 1fr 1fr 1fr 1fr',
+    minWidth: 420,
     padding: '9px 8px',
     borderRadius: 'var(--radius-sm)',
   },
@@ -400,6 +403,7 @@ const s = {
   totalRow: {
     display: 'grid',
     gridTemplateColumns: '110px 1fr 1fr 1fr 1fr',
+    minWidth: 420,
     padding: '10px 8px',
     borderTop: '1.5px solid var(--border)',
     marginTop: 4,

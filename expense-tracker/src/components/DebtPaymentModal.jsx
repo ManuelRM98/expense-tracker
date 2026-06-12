@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { todayISO, fmtCOP } from '../utils/format';
 import DatePicker from './DatePicker';
+import useIsMobile from '../hooks/useIsMobile';
+import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
+import { DragHandle } from '../utils/mobileModal';
 
 export default function DebtPaymentModal({ open, onClose, onSave, debt, editing }) {
   // State is initialised from props at mount; parent remounts via key when open/editing changes
@@ -42,13 +45,16 @@ export default function DebtPaymentModal({ open, onClose, onSave, debt, editing 
     onClose();
   }
 
+  const isMobile = useIsMobile();
+
   if (!open || !debt) return null;
 
   const remaining = debt.totalRemaining;
 
   return (
-    <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={s.modal} role="dialog" aria-modal="true">
+    <div style={getModalOverlayStyle(isMobile)} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={getModalStyle(isMobile, { maxWidth: 400 })} role="dialog" aria-modal="true">
+        {isMobile && <DragHandle />}
         <div style={s.mHeader}>
           <span style={s.mTitle}>{editing ? 'Edit Payment' : 'Add Payment'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>

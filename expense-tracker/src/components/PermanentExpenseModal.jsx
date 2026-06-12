@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import useIsMobile from '../hooks/useIsMobile';
+import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
+import { DragHandle } from '../utils/mobileModal';
 
 const EMPTY = {
   name:       '',
@@ -113,21 +116,24 @@ export default function PermanentExpenseModal({
     if (form.category === name) set('category', '');
   }
 
+  const isMobile = useIsMobile();
+
   if (!open) return null;
 
   return (
-    <div style={s.overlay} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={s.modal} role="dialog" aria-modal="true">
+    <div style={getModalOverlayStyle(isMobile)} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={getModalStyle(isMobile, { maxWidth: 500 })} role="dialog" aria-modal="true">
+        {isMobile && <DragHandle />}
         <div style={s.mHeader}>
           <span style={s.mTitle}>{editing ? 'Edit Permanent Expense' : 'Add Permanent Expense'}</span>
           <button style={s.closeBtn} onClick={onClose}>&#x2715;</button>
         </div>
 
         <form onSubmit={handleSubmit} noValidate>
-          <div style={s.grid}>
+          <div className="modal-form-grid">
 
             {/* Name */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <label style={s.label}>Name</label>
               <input
                 type="text" placeholder="e.g. Netflix, Rent, Gym"
@@ -166,7 +172,7 @@ export default function PermanentExpenseModal({
             </div>
 
             {/* Category */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <div style={s.labelRow}>
                 <label style={s.label}>Category</label>
                 <button type="button" style={s.manageBtn}
@@ -250,7 +256,7 @@ export default function PermanentExpenseModal({
             </div>
 
             {/* Card Type */}
-            <div style={{ ...s.group, ...s.full }}>
+            <div className="modal-grid-full" style={{ ...s.group, ...s.full }}>
               <div style={s.labelRow}>
                 <label style={{ ...s.label, ...(form.cardPay !== 'Yes' ? s.labelDisabled : {}) }}>Card Type</label>
                 {form.cardPay === 'Yes' && (

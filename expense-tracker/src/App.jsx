@@ -4,8 +4,11 @@ import { useAppData } from './hooks/useAppData';
 import { useFixedExpenses } from './hooks/useFixedExpenses';
 import { useBudget } from './hooks/useBudget';
 import { useDebts } from './hooks/useDebts';
+import useIsMobile from './hooks/useIsMobile';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
+import BottomTabBar from './components/BottomTabBar';
+import MonthPickerSheet from './components/MonthPickerSheet';
 import ConfirmDialog from './components/ConfirmDialog';
 
 // Route-level page components (DEBT-02)
@@ -59,9 +62,13 @@ export default function App() {
   const { generateForMonth } = useFixedExpenses();
   const budgetHook = useBudget();
   const debtsHook  = useDebts();
+  const isMobile   = useIsMobile();
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Mobile-only: sheet open state for the month picker
+  const [monthSheetOpen, setMonthSheetOpen] = useState(false);
 
   // ── Dark mode ──────────────────────────────────────────────────────────────
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
@@ -193,22 +200,27 @@ export default function App() {
         addLabel={headerAction.label}
         btnColor={headerAction.color}
         onHome={goHome}
+        isMobile={isMobile}
       />
 
       <div className="app-layout">
-        <Sidebar
-          view={view}
-          viewYear={sidebarYear}
-          viewMonth={sidebarMonth}
-          onHome={goHome}
-          onSelectMonth={goToMonth}
-          expenses={allExpenses}
-          savings={allSavings}
-          onOpenSettings={() => navigate('/settings')}
-          onOpenDebts={() => navigate('/debts')}
-        />
+        {/* Desktop only: sticky sidebar */}
+        {!isMobile && (
+          <Sidebar
+            view={view}
+            viewYear={sidebarYear}
+            viewMonth={sidebarMonth}
+            onHome={goHome}
+            onSelectMonth={goToMonth}
+            expenses={allExpenses}
+            savings={allSavings}
+            onOpenSettings={() => navigate('/settings')}
+            onOpenDebts={() => navigate('/debts')}
+          />
+        )}
 
-        <div className="app-content">
+        {/* app-content: on mobile gets extra bottom padding for the tab bar */}
+        <div className={isMobile ? 'app-content app-content--mobile' : 'app-content'}>
           <Routes>
             {/* Home — annual dashboard */}
             <Route path="/" element={
@@ -374,6 +386,31 @@ export default function App() {
           </Routes>
         </div>
       </div>
+
+      {/* Mobile chrome: bottom tab bar + month picker sheet */}
+      {isMobile && (
+        <>
+          <BottomTabBar
+            view={view}
+            onHome={goHome}
+            onOpenMonths={() => setMonthSheetOpen(true)}
+            onOpenDebts={() => navigate('/debts')}
+            onOpenSettings={() => navigate('/settings')}
+          />
+          {/* key resets internal state on each open so selectedYear syncs to viewYear */}
+          <MonthPickerSheet
+            key={monthSheetOpen ? 'open' : 'closed'}
+            open={monthSheetOpen}
+            onClose={() => setMonthSheetOpen(false)}
+            onSelectMonth={(year, month) => goToMonth(year, month)}
+            view={view}
+            viewYear={sidebarYear}
+            viewMonth={sidebarMonth}
+            expenses={allExpenses}
+            savings={allSavings}
+          />
+        </>
+      )}
 
       {toast && <div style={toastStyle}>{toast}</div>}
       {/* STATE-07: surface budget load error inline */}

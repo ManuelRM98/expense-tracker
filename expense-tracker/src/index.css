@@ -90,12 +90,16 @@ body {
   from { opacity: 0; transform: scale(0.88); }
   to   { opacity: 1; transform: scale(1); }
 }
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
 @keyframes calendarIn {
   from { opacity: 0; transform: translateY(-8px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* DEBT-07: responsive layout — sidebar collapses below 640px */
+/* FEAT-13: responsive layout */
 .app-layout {
   display: flex;
   align-items: flex-start;
@@ -107,11 +111,57 @@ body {
   overflow-x: hidden;
 }
 
+/*
+ * FEAT-13: mobile content padding
+ * On mobile the sidebar is not rendered; app-content fills the full width.
+ * The bottom tab bar (56px) + safe-area must be reserved so the last row is
+ * never hidden. --tab-bar-h must match TAB_H in BottomTabBar.jsx.
+ */
+:root {
+  --tab-bar-h: 56px;
+}
+
 @media (max-width: 640px) {
   .app-layout {
+    /* Single column — no stacking sidebar issue (sidebar not rendered on mobile) */
     flex-direction: column;
   }
   .app-content {
     width: 100%;
+  }
+  /* Reserve space for the fixed bottom tab bar + safe area inset */
+  .app-content--mobile {
+    padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom));
+  }
+}
+
+/* Sheet slide-up animation used by MonthPickerSheet and mobile modals */
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+/* FEAT-13: modal form grid — 2 columns on desktop, 1 column on mobile */
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .modal-form-grid {
+    grid-template-columns: 1fr;
+  }
+  /* full-span items stay full on desktop; on mobile they just stay single col */
+  .modal-form-grid .modal-grid-full {
+    grid-column: 1;
+  }
+}
+
+/* FEAT-13: responsive helper classes */
+@media (max-width: 640px) {
+  /* Three-column rate strip in MonthView → wraps to 1 col on small screens */
+  .rate-strip-grid {
+    grid-template-columns: 1fr !important;
   }
 }
