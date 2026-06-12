@@ -21,6 +21,7 @@ import {
 } from '../components/Charts';
 import * as sharedStyles from '../styles/shared';
 import NavArrowButton from '../components/NavArrowButton';
+import TabBtn from '../components/TabBtn';
 
 const MONTH_URL_NAMES = [
   'january','february','march','april','may','june',
@@ -571,18 +572,6 @@ function SummaryCard({ label, value, color }) {
       <div style={sharedStyles.cardLabel}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', color: color ?? 'var(--text-primary)' }}>{value}</div>
     </div>
-  );
-}
-
-function TabBtn({ label, active, onClick, color }) {
-  const activeColor = color ?? 'var(--accent)';
-  return (
-    <button
-      style={{ ...sharedStyles.tabBtn, ...(active ? { background: activeColor, color: '#fff', fontWeight: 600 } : {}) }}
-      onClick={onClick}
-    >
-      {label}
-    </button>
   );
 }
 

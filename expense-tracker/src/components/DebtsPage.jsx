@@ -3,6 +3,8 @@ import { fmtCOP, fmtDate } from '../utils/format';
 import DebtModal from './DebtModal';
 import DebtPaymentModal from './DebtPaymentModal';
 import ConfirmDialog from './ConfirmDialog';
+import * as sharedStyles from '../styles/shared';
+import TabBtn from './TabBtn';
 
 function DebtTable({ debts, onEdit, onDelete, onAddPayment, onEditPayment, onDeletePayment, onToggleSettle }) {
   const [expandedId, setExpandedId] = useState(null);
@@ -273,9 +275,9 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
   }
 
   const tabs = [
-    { key: 'analytics', label: 'Analytics' },
-    { key: 'owed',      label: 'They Owe Me' },
-    { key: 'owe',       label: 'I Owe' },
+    { key: 'analytics', label: 'Analytics',    color: 'var(--analytics)' },
+    { key: 'owed',      label: 'They Owe Me',  color: 'var(--success)'   },
+    { key: 'owe',       label: 'I Owe',        color: 'var(--danger)'    },
   ];
 
   return (
@@ -285,15 +287,15 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
         <button style={s.addBtn} onClick={openAddDebt}>+ Add Debt</button>
       </div>
 
-      <div style={s.tabBar}>
+      <div style={sharedStyles.tabBar}>
         {tabs.map(t => (
-          <button
+          <TabBtn
             key={t.key}
-            style={{ ...s.tab, ...(activeTab === t.key ? s.tabActive : {}) }}
+            label={t.label}
+            active={activeTab === t.key}
             onClick={() => setActiveTab(t.key)}
-          >
-            {t.label}
-          </button>
+            color={t.color}
+          />
         ))}
       </div>
 
@@ -425,21 +427,6 @@ const s = {
     borderRadius: 'var(--radius-sm)', background: 'var(--accent)',
     color: '#fff', fontSize: 13, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'inherit',
-  },
-  tabBar: { display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 },
-  tab: {
-    padding: '9px 18px', border: 'none',
-    borderRadius: 'var(--radius-sm) var(--radius-sm) 0 0',
-    background: 'transparent', color: 'var(--text-secondary)',
-    fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-    borderBottom: '2px solid transparent',
-    marginBottom: -1,
-    transition: 'all 0.12s',
-  },
-  tabActive: {
-    color: 'var(--accent)', fontWeight: 600,
-    borderBottom: '2px solid var(--accent)',
-    background: 'var(--accent-light)',
   },
   analytics: { display: 'flex', flexDirection: 'column', gap: 20 },
   summaryRow: {
