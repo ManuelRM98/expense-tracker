@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fmtCOP } from '../utils/format';
+import NavArrowButton from './NavArrowButton';
 
 export default function GlobalSalaryPage({ baseSalary, onSave, onBack }) {
   const [value, setValue]   = useState('');
@@ -35,11 +36,7 @@ export default function GlobalSalaryPage({ baseSalary, onSave, onBack }) {
   return (
     <div style={s.page}>
       <div style={s.header}>
-        <button style={s.back} onClick={onBack}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-          </svg>
-        </button>
+        <NavArrowButton direction="left" onClick={onBack} title="Back" />
         <h1 style={s.title}>Global Salary</h1>
       </div>
 
@@ -91,11 +88,6 @@ const s = {
     alignItems: 'center',
     gap: 12,
     marginBottom: 28,
-  },
-  back: {
-    width: 38, height: 38, borderRadius: '50%', border: '1.5px solid var(--border)',
-    background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   title: {
     fontSize: 28,

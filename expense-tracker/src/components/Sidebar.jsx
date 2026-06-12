@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { MONTH_NAMES, MONTH_SHORT } from '../utils/format';
+import NavArrowButton from './NavArrowButton';
 
 const now = new Date();
 const CURRENT_YEAR = now.getFullYear();
@@ -71,17 +72,25 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
           <div style={s.divider} />
 
           <div style={s.yearNavCollapsed}>
-            <button
-              style={{ ...s.yearArrowTiny, ...(selectedYear >= maxYear ? s.yearArrowDisabled : {}) }}
+            <NavArrowButton
+              direction="up"
+              size={28}
+              iconSize={13}
+              shadow={false}
               disabled={selectedYear >= maxYear}
               onClick={() => setSelectedYear(y => y + 1)}
-            >▴</button>
+              title="Next year"
+            />
             <span style={s.yearLabelTiny}>{String(selectedYear).slice(2)}</span>
-            <button
-              style={{ ...s.yearArrowTiny, ...(selectedYear <= minYear ? s.yearArrowDisabled : {}) }}
+            <NavArrowButton
+              direction="down"
+              size={28}
+              iconSize={13}
+              shadow={false}
               disabled={selectedYear <= minYear}
               onClick={() => setSelectedYear(y => y - 1)}
-            >▾</button>
+              title="Previous year"
+            />
           </div>
 
           <div style={s.monthsScroll}>
@@ -140,17 +149,23 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
           <p style={s.sectionLabel}>Months</p>
 
           <div style={s.yearNav}>
-            <button
-              style={{ ...s.yearArrow, ...(selectedYear <= minYear ? s.yearArrowDisabled : {}) }}
+            <NavArrowButton
+              direction="left"
+              size={26}
+              iconSize={13}
               disabled={selectedYear <= minYear}
               onClick={() => setSelectedYear(y => y - 1)}
-            >◂</button>
+              title="Previous year"
+            />
             <span style={s.yearLabel}>{selectedYear}</span>
-            <button
-              style={{ ...s.yearArrow, ...(selectedYear >= maxYear ? s.yearArrowDisabled : {}) }}
+            <NavArrowButton
+              direction="right"
+              size={26}
+              iconSize={13}
               disabled={selectedYear >= maxYear}
               onClick={() => setSelectedYear(y => y + 1)}
-            >▸</button>
+              title="Next year"
+            />
           </div>
 
           <div style={s.monthsScroll}>
@@ -310,43 +325,6 @@ const s = {
     gap: 2,
     marginBottom: 4,
     flexShrink: 0,
-  },
-  yearArrow: {
-    width: 26,
-    height: 26,
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '1.5px solid var(--border)',
-    borderRadius: '50%',
-    background: 'var(--bg)',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    fontSize: 11,
-    fontFamily: 'inherit',
-    lineHeight: 1,
-    padding: 0,
-  },
-  yearArrowTiny: {
-    width: 22,
-    height: 18,
-    flexShrink: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: 'none',
-    background: 'transparent',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    fontSize: 10,
-    fontFamily: 'inherit',
-    lineHeight: 1,
-    padding: 0,
-  },
-  yearArrowDisabled: {
-    opacity: 0.25,
-    cursor: 'default',
   },
   yearLabel: {
     fontSize: 14,

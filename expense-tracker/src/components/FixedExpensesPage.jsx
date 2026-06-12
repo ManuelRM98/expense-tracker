@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { fmtCOP } from '../utils/format';
 import PermanentExpenseModal from './PermanentExpenseModal';
+import NavArrowButton from './NavArrowButton';
 
 const ORDINAL = (d) => {
   const s = ['th','st','nd','rd'];
@@ -57,11 +58,7 @@ export default function FixedExpensesPage({
       {/* ── Page header ── */}
       <div style={s.pageHeader}>
         <div style={s.pageHeaderLeft}>
-          <button style={s.backBtn} onClick={onBack} title="Back to main view">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-            </svg>
-          </button>
+          <NavArrowButton direction="left" onClick={onBack} title="Back" />
           <div>
             <div style={s.pageTitle}>Permanent Fixed Costs</div>
             <div style={s.pageSubtitle}>
@@ -258,11 +255,6 @@ const s = {
   pageHeaderLeft:  { display: 'flex', alignItems: 'center', gap: 14 },
   pageHeaderRight: { display: 'flex', alignItems: 'center', gap: 14 },
 
-  backBtn: {
-    width: 38, height: 38, borderRadius: '50%', border: '1.5px solid var(--border)',
-    background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-  },
   pageTitle:    { fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px' },
   pageSubtitle: { fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 },
 

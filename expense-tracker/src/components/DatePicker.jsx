@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import NavArrowButton from './NavArrowButton';
 
 const WEEK_DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTHS = [
@@ -151,12 +152,14 @@ export default function DatePicker({ value, onChange, hasError, accent = 'var(--
 
           {/* ── Header (shared) ── */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <button type="button" onClick={prevPeriod} style={cs.navBtn}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                strokeWidth="2.5" style={{ stroke: 'var(--text-primary)' }}>
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
-            </button>
+            <NavArrowButton
+              direction="left"
+              size={28}
+              iconSize={13}
+              onClick={prevPeriod}
+              shadow={false}
+              style={{ background: 'var(--bg)' }}
+            />
 
             {/* Clickable title toggles month-picker */}
             <button
@@ -183,12 +186,14 @@ export default function DatePicker({ value, onChange, hasError, accent = 'var(--
               </svg>
             </button>
 
-            <button type="button" onClick={nextPeriod} style={cs.navBtn}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                strokeWidth="2.5" style={{ stroke: 'var(--text-primary)' }}>
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
-            </button>
+            <NavArrowButton
+              direction="right"
+              size={28}
+              iconSize={13}
+              onClick={nextPeriod}
+              shadow={false}
+              style={{ background: 'var(--bg)' }}
+            />
           </div>
 
           {/* ── Month picker grid ── */}
@@ -309,11 +314,3 @@ export default function DatePicker({ value, onChange, hasError, accent = 'var(--
   );
 }
 
-const cs = {
-  navBtn: {
-    width: 32, height: 32, borderRadius: '50%', border: 'none',
-    background: 'var(--bg)', cursor: 'pointer', fontFamily: 'inherit',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    flexShrink: 0,
-  },
-};

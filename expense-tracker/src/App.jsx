@@ -219,6 +219,18 @@ export default function App() {
                 loadExpensesForMonth={appData.loadExpensesForMonth}
                 loadSavingsForMonth={appData.loadSavingsForMonth}
                 fetchIncomeForYear={appData.fetchIncomeForYear}
+                addRef={monthViewAddRef}
+                addExpense={appData.addExpense}
+                cardTypes={appData.cardTypes}
+                addCardType={appData.addCardType}
+                removeCardType={appData.removeCardType}
+                expenseCategories={appData.expenseCategories}
+                addExpenseCategory={appData.addExpenseCategory}
+                removeExpenseCategory={appData.removeExpenseCategory}
+                renameExpenseCategory={appData.renameExpenseCategory}
+                people={appData.people}
+                showToast={showToast}
+                addDebt={addDebt}
               />
             } />
 

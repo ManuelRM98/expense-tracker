@@ -476,7 +476,18 @@ export default function ExpenseModal({
               style={s.debtToggle}
               onClick={() => setDebtSectionOpen(o => !o)}
             >
-              <span>{debtSectionOpen ? '▾' : '▸'}</span>
+              {/* inline rotating chevron — same geometry as NavArrowButton */}
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{
+                  stroke: 'currentColor', flexShrink: 0,
+                  transform: debtSectionOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
+                  transition: 'transform .2s',
+                }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
               <span>Add debt from this expense</span>
               {debtEntries.length > 0 && (
                 <span style={s.debtBadge}>{debtEntries.length}</span>
@@ -601,11 +612,13 @@ const s = {
   select: {
     fontFamily: 'inherit', fontSize: 15,
     background: 'var(--bg)', border: '1.5px solid var(--border)',
-    borderRadius: 'var(--radius-sm)', padding: '11px 14px',
+    borderRadius: 'var(--radius-sm)', padding: '11px 36px 11px 14px',
     color: 'var(--text-primary)', outline: 'none', width: '100%',
-    appearance: 'none',
-    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%236d6d72'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E\")",
-    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: 32,
+    appearance: 'none', WebkitAppearance: 'none',
+    // Stroke chevron (same geometry as NavArrowButton) — %236d6d72 = text-secondary (#6d6d72),
+    // neutral enough to be visible in both light and dark mode.
+    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236d6d72' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
   },
   inlineAdd: { display: 'flex', gap: 8, marginTop: 8 },
   addBtn: {
@@ -684,9 +697,12 @@ const s = {
   debtSelect: {
     fontFamily: 'inherit', fontSize: 13,
     background: 'var(--bg)', border: '1.5px solid var(--border)',
-    borderRadius: 'var(--radius-sm)', padding: '8px 10px',
+    borderRadius: 'var(--radius-sm)', padding: '8px 28px 8px 10px',
     color: 'var(--text-primary)', outline: 'none',
     minWidth: 120,
+    appearance: 'none', WebkitAppearance: 'none',
+    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236d6d72' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")",
+    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
   },
   debtRemoveBtn: {
     width: 26, height: 26, border: 'none',

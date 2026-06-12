@@ -20,6 +20,7 @@ import {
   IncomeBreakdownChart,
 } from '../components/Charts';
 import * as sharedStyles from '../styles/shared';
+import NavArrowButton from '../components/NavArrowButton';
 
 const MONTH_URL_NAMES = [
   'january','february','march','april','may','june',
@@ -289,12 +290,12 @@ export default function MonthView({
       <main style={s.main}>
         {/* Month nav */}
         <div style={s.monthBar}>
-          <button style={sharedStyles.navBtn} onClick={prevMonth}>&#8249;</button>
+          <NavArrowButton direction="left" onClick={prevMonth} />
           <div style={s.monthLabel}>
             {MONTH_NAMES[viewMonth]} {viewYear}
             {isCurrentMonth && <span style={sharedStyles.badge}>Current</span>}
           </div>
-          <button style={sharedStyles.navBtn} onClick={nextMonth}>&#8250;</button>
+          <NavArrowButton direction="right" onClick={nextMonth} />
         </div>
 
         {/* Tab bar */}

@@ -25,21 +25,6 @@ export const pageMain = {
   padding: '28px 24px 80px',
 };
 
-// ── Navigation buttons (round arrow buttons) ──────────────────────────────────
-
-export const navBtn = {
-  width: 36, height: 36, borderRadius: '50%', border: 'none',
-  background: 'var(--surface)', boxShadow: 'var(--shadow-sm)',
-  cursor: 'pointer', fontSize: 22, color: 'var(--accent)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  fontFamily: 'inherit',
-};
-
-export const navBtnDisabled = {
-  opacity: 0.3,
-  cursor: 'default',
-};
-
 // ── Cards / surfaces ──────────────────────────────────────────────────────────
 
 export const surfaceCard = {

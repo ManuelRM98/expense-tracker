@@ -3,6 +3,7 @@ import { fmtCOP, MONTH_NAMES, MONTH_SHORT } from '../utils/format';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts';
+import NavArrowButton from './NavArrowButton';
 
 const COLORS = ['#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de', '#5ac8fa', '#ffcc00'];
 
@@ -81,16 +82,16 @@ export default function AnnualDashboard({ year, expenses, savings, getIncome, on
     <div style={s.container}>
       {/* Year navigation */}
       <div style={s.yearNav}>
-        <button style={s.navBtn} onClick={onPrevYear}>&#8249;</button>
+        <NavArrowButton direction="left" onClick={onPrevYear} />
         <div style={s.yearCenter}>
           <h1 style={s.yearTitle}>{year}</h1>
           {isCurrentYear && <span style={s.badge}>In Progress</span>}
         </div>
-        <button
-          style={{ ...s.navBtn, ...(year >= CURRENT_YEAR ? s.navBtnDisabled : {}) }}
-          onClick={() => year < CURRENT_YEAR && onNextYear()}
+        <NavArrowButton
+          direction="right"
+          onClick={onNextYear}
           disabled={year >= CURRENT_YEAR}
-        >&#8250;</button>
+        />
       </div>
       <p style={s.periodLabel}>{periodLabel}</p>
 
@@ -245,24 +246,6 @@ const s = {
     alignItems: 'center',
     gap: 16,
     marginBottom: 4,
-  },
-  navBtn: {
-    width: 36, height: 36,
-    borderRadius: '50%',
-    border: 'none',
-    background: 'var(--surface)',
-    boxShadow: 'var(--shadow-sm)',
-    cursor: 'pointer',
-    fontSize: 22,
-    color: 'var(--accent)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: 'inherit',
-  },
-  navBtnDisabled: {
-    opacity: 0.3,
-    cursor: 'default',
   },
   yearCenter: {
     display: 'flex',
