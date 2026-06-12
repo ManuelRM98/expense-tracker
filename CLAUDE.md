@@ -67,6 +67,8 @@ documented findings.
 
 Feature and bug work follows `AGENTIC_WORKFLOW.md`: spec → `backend-agent` →
 `frontend-agent` → `qa-reviewer` (independent, read-only verifier) → fix loop →
-human approval. The `/feature` and `/fix` slash commands encode these pipelines.
+human approval. The `/feature` and `/fix` skills (`.claude/skills/`) encode these
+pipelines; `/contract-check`, `/audit`, and `/ship` encode the supporting rituals
+(see `COMMANDS.md`).
 Backend is implemented before frontend because the frontend consumes the contract.
 Do not commit without explicit user approval.

@@ -1,5 +1,6 @@
 ---
 description: Fix a bug through the agentic pipeline (triage → failing test → fix → qa-review)
+argument-hint: <bug description>
 ---
 Fix the following bug using the workflow in AGENTIC_WORKFLOW.md §4.2:
 

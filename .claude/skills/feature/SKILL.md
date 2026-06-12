@@ -1,13 +1,15 @@
 ---
 description: Implement a feature through the agentic pipeline (spec → backend → frontend → qa-review)
+argument-hint: <feature description>
 ---
 Implement the following feature using the project's agentic workflow
 (see AGENTIC_WORKFLOW.md §4.1):
 
-1. **SPEC** — For anything non-trivial, get a short design note into `spec/` first
-   (endpoints + schemas + UI touchpoints + acceptance criteria). The API contract in
-   that note is the coordination artifact between the implementer agents — they never
-   talk to each other directly.
+1. **SPEC** — For anything non-trivial, get a short design note into `spec/` first,
+   named `FEAT-NN-<slug>.md` (continue the numbering from the highest existing FEAT
+   spec): endpoints + schemas + UI touchpoints + acceptance criteria. The API contract
+   in that note is the coordination artifact between the implementer agents — they
+   never talk to each other directly.
 2. **BACKEND** — Delegate to `backend-agent`: models/schemas/router + pytest. Backend
    goes first because the frontend consumes the contract.
 3. **FRONTEND** — Delegate to `frontend-agent`: hook + api.js mappers + components

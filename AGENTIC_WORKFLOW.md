@@ -287,13 +287,16 @@ numbered specs, then feed the "Immediate" items through workflow 4.2.
 
 ## 5. Automation Layer (Claude Code mechanics)
 
-### 5.1 Custom slash commands — encode the workflows
+### 5.1 Custom skills — encode the workflows
 
-Create `.claude/commands/feature.md` and `.claude/commands/fix.md` so the pipeline is
-one command instead of re-explaining it each session:
+Define `.claude/skills/feature/SKILL.md` and `.claude/skills/fix/SKILL.md` so the
+pipeline is one command instead of re-explaining it each session. Skills are the
+unified successor to `.claude/commands/` slash commands: invocation is identical
+(`/feature …`, `/fix …`, `$ARGUMENTS` substitution), but each skill gets its own
+folder for supporting files and richer frontmatter (`argument-hint`, `allowed-tools`).
 
 ```markdown
-# .claude/commands/feature.md
+# .claude/skills/feature/SKILL.md
 Implement the following feature using the project's agentic workflow
 (see AGENTIC_WORKFLOW.md §4.1): spec → backend-agent → frontend-agent →
 qa-reviewer → fix loop → present for approval. Do not commit without approval.
@@ -302,13 +305,23 @@ Feature: $ARGUMENTS
 ```
 
 ```markdown
-# .claude/commands/fix.md
+# .claude/skills/fix/SKILL.md
 Fix the following bug using the workflow in AGENTIC_WORKFLOW.md §4.2:
 triage → failing test → implementer agent → qa-reviewer verification.
 If it matches a spec/ finding ID, cite and close it.
 
 Bug: $ARGUMENTS
 ```
+
+Three supporting skills (added 2026-06-12) encode the rituals around the pipelines —
+see `COMMANDS.md` for usage:
+
+- **`/contract-check`** — read-only schemas.py/models.py ↔ api.js mapper drift check
+  (the §2.4 checklist item 2 failure mode, runnable on demand before review).
+- **`/audit`** — the §4.3 periodic re-audit, with the DONE-* baseline-comparison
+  rules baked in.
+- **`/ship`** — the gated commit ritual: verification commands → diff summary →
+  explicit approval → commit. Never pushes.
 
 ### 5.2 Hooks — make cheap checks unskippable
 
@@ -343,12 +356,12 @@ running multiple features in parallel.
 - [x] 3. Fix BUG-01 (analytics crash) so the baseline is green *(done 2026-06-10 — also fixed the annual income_map overwrite for multi-entry months)*
 - [x] 4. Add pytest suite: fixtures + 1 happy-path test per router *(done 2026-06-10 — 13 tests in `expense-tracker-api/tests/`, deps in `requirements-dev.txt`)*
 - [x] 5. Create `.claude/agents/qa-reviewer.md` (§2.4) *(done 2026-06-10)*
-- [x] 6. Create `/feature` and `/fix` slash commands (§5.1) *(done 2026-06-10)*
+- [x] 6. Create `/feature` and `/fix` slash commands (§5.1) *(done 2026-06-10;
+      migrated to skills at `.claude/skills/<name>/SKILL.md` on 2026-06-12)*
 
-> ⚠️ Baseline note (2026-06-10): backend pytest is green, `npm run build` is green, but
-> `npm run lint` has **8 pre-existing errors** (7× `react-hooks/set-state-in-effect` in
-> the modal reset pattern + 1 unused `cashTotal` in App.jsx). Until fixed, qa-reviewer
-> should treat only *new* lint errors as blocking. Good first candidate for `/fix`.
+> ✅ Baseline note (updated 2026-06-12): backend pytest, `npm run build`, and
+> `npm run lint` are all green. The 8 lint errors flagged in the 2026-06-10 baseline
+> have been fixed — qa-reviewer treats **any** lint error as blocking again.
 - [ ] 7. Dry-run the loop: push the 5 "Immediate" fixes from `spec/10` through `/fix`
 - [ ] 8. Add lint/test hooks (§5.2) once the suite is stable
 - [ ] 9. Re-run architect-auditor; compare against the `spec/10` baseline
