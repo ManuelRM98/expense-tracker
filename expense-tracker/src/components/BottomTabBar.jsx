@@ -88,19 +88,28 @@ export default function BottomTabBar({ view, onHome, onOpenMonths, onOpenDebts, 
 const s = {
   bar: {
     position: 'fixed',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    // frosted glass — same treatment as header and sidebar
-    background: 'var(--surface-glass)',
-    backdropFilter: 'saturate(180%) blur(20px)',
-    WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-    borderTop: '1px solid var(--panel-edge)',
-    boxShadow: '0 -1px 8px rgba(0,0,0,0.08)',
+    // Float above the home indicator: bottom = gap + safe-area-inset-bottom
+    bottom: 'calc(var(--tab-bar-gap) + env(safe-area-inset-bottom))',
+    // Side insets so the pill detaches from the screen edges
+    left: 'calc(16px + env(safe-area-inset-left))',
+    right: 'calc(16px + env(safe-area-inset-right))',
+    // Frosted glass — dedicated semi-transparent token so the blur reads visibly.
+    // overflow:hidden is intentionally absent: combining it with backdrop-filter +
+    // border-radius on the same element drops the blur in Chromium/WebKit.
+    // border-radius already clips the visual region; nothing pokes out of the corners.
+    background: 'var(--tab-bar-glass)',
+    backdropFilter: 'saturate(180%) blur(24px)',
+    WebkitBackdropFilter: 'saturate(180%) blur(24px)',
+    // All-sides border for the detached pill
+    border: '1px solid var(--panel-edge)',
+    // Fully rounded pill + glassy top inner highlight + floating shadow
+    borderRadius: 999,
+    boxShadow:
+      'inset 0 1px 0 var(--tab-bar-highlight), var(--tab-bar-float-shadow)',
     display: 'flex',
     alignItems: 'stretch',
-    height: `calc(${TAB_H}px + env(safe-area-inset-bottom))`,
-    paddingBottom: 'env(safe-area-inset-bottom)',
+    // Bar is exactly TAB_H tall — no extra safe-area padding because it floats above
+    height: TAB_H,
     zIndex: 150,
   },
   tab: {
@@ -114,7 +123,7 @@ const s = {
     background: 'transparent',
     cursor: 'pointer',
     fontFamily: 'inherit',
-    // ≥ 44px touch target (the bar itself is 56px, this fills it)
+    // >= 44px touch target (the bar itself is 56px, this fills it)
     minHeight: 44,
     padding: '6px 0',
     transition: 'color 0.15s',

@@ -114,7 +114,7 @@ const styles = {
     background: 'var(--accent)',
     color: '#fff',
     border: 'none',
-    borderRadius: 'var(--radius-sm)',
+    borderRadius: '50%',
     cursor: 'pointer',
     fontFamily: 'inherit',
     flexShrink: 0,

@@ -119,6 +119,22 @@ body {
  */
 :root {
   --tab-bar-h: 56px;
+  /* FEAT-13: floating pill tab bar — gap between bar bottom and screen edge */
+  --tab-bar-gap: 12px;
+  /* Glassy top inner highlight (light theme: visible white sheen) */
+  --tab-bar-highlight: rgba(255, 255, 255, 0.55);
+  /* Floating drop shadow for the pill */
+  --tab-bar-float-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.10);
+  /* Dedicated glass fill for the tab bar pill — more transparent than --surface-glass
+     so the frosted blur reads clearly through the background */
+  --tab-bar-glass: rgba(255, 255, 255, 0.50);
+}
+
+[data-theme="dark"] {
+  /* Dark theme: much subtler inner highlight so it doesn't look neon */
+  --tab-bar-highlight: rgba(255, 255, 255, 0.10);
+  --tab-bar-float-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.30);
+  --tab-bar-glass: rgba(44, 44, 46, 0.50);
 }
 
 @media (max-width: 640px) {
@@ -129,9 +145,14 @@ body {
   .app-content {
     width: 100%;
   }
-  /* Reserve space for the fixed bottom tab bar + safe area inset */
+  /*
+   * Reserve space for the floating pill tab bar:
+   * bar height + bottom gap + safe area + a little breathing room (8px).
+   * --tab-bar-gap is defined once above so the offset stays in sync with
+   * the bar's actual bottom offset in BottomTabBar.jsx.
+   */
   .app-content--mobile {
-    padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--tab-bar-h) + var(--tab-bar-gap) + env(safe-area-inset-bottom) + 8px);
   }
 }
 
