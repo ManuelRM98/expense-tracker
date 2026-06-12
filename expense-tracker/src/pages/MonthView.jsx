@@ -37,6 +37,7 @@ export default function MonthView({
   cardTypes, cardColors, addCardType, removeCardType,
   expenseCategories, addExpenseCategory, removeExpenseCategory, renameExpenseCategory,
   savingCategories, addSavingCategory, removeSavingCategory, renameSavingCategory,
+  expenseCategoryColors, savingCategoryColors,
   getIncome, getIncomeEntries, fetchIncomeForYear,
   addIncomeEntry, updateIncomeEntry, deleteIncomeEntry,
   ensureSalaryForMonth, baseSalaryLoaded,
@@ -367,6 +368,7 @@ export default function MonthView({
             <ExpenseTable
               expenses={monthExpenses}
               cardColors={cardColors}
+              categoryColors={expenseCategoryColors}
               onEdit={openEdit}
               onDelete={handleDelete}
               onClone={openCloneExpense}
@@ -392,6 +394,7 @@ export default function MonthView({
             <SavingTable
               savings={monthSavings}
               cardColors={cardColors}
+              categoryColors={savingCategoryColors}
               onEdit={openEditSaving}
               onDelete={handleDeleteSaving}
               onClone={openCloneSaving}
@@ -542,12 +545,12 @@ function IncomeBanner({ income, entries, onAdd, onEdit, onDelete }) {
               <div style={s.incomeEntryRight}>
                 <span style={s.incomeEntryCop}>{fmtCOP(entry.amountCop)}</span>
                 <button style={s.incomeEntryBtn} onClick={() => onEdit(entry)} title="Edit">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
                   </svg>
                 </button>
                 <button style={{ ...s.incomeEntryBtn, color: 'var(--danger)' }} onClick={() => onDelete(entry.id)} title="Delete">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
                   </svg>
                 </button>
@@ -674,9 +677,11 @@ const s = {
     fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
   },
   incomeEntryBtn: {
-    width: 26, height: 26, borderRadius: '50%', border: 'none',
-    background: 'transparent', color: 'var(--text-tertiary)',
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: 28, height: 28, borderRadius: '50%',
+    border: '1px solid var(--border)', background: 'var(--surface-2)',
+    cursor: 'pointer', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', flexShrink: 0, padding: 0,
+    color: 'var(--text-secondary)', transition: 'background 0.15s',
   },
   rateStrip: {
     display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 16,

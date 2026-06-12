@@ -8,7 +8,7 @@ import { useFixedExpenses } from '../hooks/useFixedExpenses';
  */
 export default function FixedExpensesView({
   cardTypes, cardColors, addCardType, removeCardType,
-  expenseCategories, addExpenseCategory, removeExpenseCategory, renameExpenseCategory,
+  expenseCategories, expenseCategoryColors, addExpenseCategory, removeExpenseCategory, renameExpenseCategory,
   showToast,
 }) {
   const navigate = useNavigate();
@@ -29,6 +29,7 @@ export default function FixedExpensesView({
       onAddCard={addCardType}
       onRemoveCard={removeCardType}
       expenseCategories={expenseCategories}
+      expenseCategoryColors={expenseCategoryColors}
       onAddCategory={addExpenseCategory}
       onRemoveCategory={removeExpenseCategory}
       onRenameCategory={async (oldName, newName) => {

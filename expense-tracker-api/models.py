@@ -76,13 +76,15 @@ class FixedExpenseLog(Base):
 class ExpenseCategory(Base):
     __tablename__ = "expense_categories"
 
-    name = Column(String, primary_key=True)
+    name  = Column(String, primary_key=True)
+    color = Column(String, nullable=True)   # FEAT-12: #rrggbb hex or NULL (= accent fallback)
 
 
 class SavingCategory(Base):
     __tablename__ = "saving_categories"
 
-    name = Column(String, primary_key=True)
+    name  = Column(String, primary_key=True)
+    color = Column(String, nullable=True)   # FEAT-12: #rrggbb hex or NULL (= accent fallback)
 
 
 class CardType(Base):

@@ -14,6 +14,7 @@ export default function SettingsView({ darkMode, onToggleDark }) {
       onOpenGlobalSalary={() => navigate('/settings/salary')}
       onOpenBudgetAllocation={() => navigate('/settings/budget')}
       onOpenCards={() => navigate('/settings/cards')}
+      onOpenCategories={() => navigate('/settings/categories')}
     />
   );
 }

@@ -12,7 +12,7 @@ export default function FixedExpensesPage({
   templates,
   onAdd, onUpdate, onDelete, onToggle,
   cardTypes, cardColors, onAddCard, onRemoveCard,
-  expenseCategories, onAddCategory, onRemoveCategory,
+  expenseCategories, expenseCategoryColors, onAddCategory, onRemoveCategory,
   onBack,
   showToast,
 }) {
@@ -102,6 +102,7 @@ export default function FixedExpensesPage({
         color="var(--warning)"
         templates={active}
         cardColors={cardColors}
+        categoryColors={expenseCategoryColors}
         onEdit={openEdit}
         onDelete={handleDelete}
         onToggle={onToggle}
@@ -114,6 +115,7 @@ export default function FixedExpensesPage({
           color="var(--text-tertiary)"
           templates={inactive}
           cardColors={cardColors}
+          categoryColors={expenseCategoryColors}
           onEdit={openEdit}
           onDelete={handleDelete}
           onToggle={onToggle}
@@ -150,7 +152,7 @@ export default function FixedExpensesPage({
   );
 }
 
-function TemplateSection({ title, color, templates, cardColors, onEdit, onDelete, onToggle }) {
+function TemplateSection({ title, color, templates, cardColors, categoryColors, onEdit, onDelete, onToggle }) {
   return (
     <div style={s.section}>
       <div style={s.sectionHeader}>
@@ -180,7 +182,14 @@ function TemplateSection({ title, color, templates, cardColors, onEdit, onDelete
                   <td style={{ ...s.td, ...s.tdAmount }}>{fmtCOP(t.amount)}</td>
                   <td style={s.td}>
                     {t.category
-                      ? <span style={s.badgeCat}>{t.category}</span>
+                      ? (() => {
+                          const catColor = categoryColors?.[t.category] ?? null;
+                          return (
+                            <span style={{ ...s.badgeCat, ...(catColor ? { background: catColor + '1A', color: catColor } : {}) }}>
+                              {t.category}
+                            </span>
+                          );
+                        })()
                       : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ ...s.td, ...s.tdDay }}>

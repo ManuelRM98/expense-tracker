@@ -12,24 +12,24 @@ MIN_ITEMS = 1   # Must keep at least one category/card at all times
 
 # ── Expense categories ─────────────────────────────────────────────────────────
 
-@router.get("/categories/expenses", response_model=list[str])
+@router.get("/categories/expenses", response_model=list[schemas.CategoryOut])
 def get_expense_categories(db: Session = Depends(get_db)):
-    return [r.name for r in db.query(models.ExpenseCategory).all()]
+    return db.query(models.ExpenseCategory).all()
 
 
-@router.post("/categories/expenses", response_model=list[str], status_code=status.HTTP_201_CREATED)
+@router.post("/categories/expenses", response_model=list[schemas.CategoryOut], status_code=status.HTTP_201_CREATED)
 def add_expense_category(payload: schemas.CategoryCreate, db: Session = Depends(get_db)):
     existing = db.query(models.ExpenseCategory).filter(
         models.ExpenseCategory.name == payload.name
     ).first()
     if existing:
         raise HTTPException(status_code=409, detail="Category already exists")
-    db.add(models.ExpenseCategory(name=payload.name))
+    db.add(models.ExpenseCategory(name=payload.name, color=payload.color))
     db.commit()
-    return [r.name for r in db.query(models.ExpenseCategory).all()]
+    return db.query(models.ExpenseCategory).all()
 
 
-@router.put("/categories/expenses/{name}", response_model=list[str])
+@router.put("/categories/expenses/{name}", response_model=list[schemas.CategoryOut])
 def rename_expense_category(name: str, payload: schemas.CategoryRename, db: Session = Depends(get_db)):
     """
     QUAL-07: Rename an expense category in one transaction, cascading the new name
@@ -49,10 +49,22 @@ def rename_expense_category(name: str, payload: schemas.CategoryRename, db: Sess
     ).update({"category": payload.new_name})
     row.name = payload.new_name
     db.commit()
-    return [r.name for r in db.query(models.ExpenseCategory).all()]
+    return db.query(models.ExpenseCategory).all()
 
 
-@router.delete("/categories/expenses/{name}", response_model=list[str])
+@router.patch("/categories/expenses/{name}", response_model=list[schemas.CategoryOut])
+def update_expense_category(name: str, payload: schemas.CategoryUpdate, db: Session = Depends(get_db)):
+    """FEAT-12: partial PATCH — only fields present in the request body are updated (color set/clear)."""
+    row = db.query(models.ExpenseCategory).filter(models.ExpenseCategory.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Category not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(row, field, value)
+    db.commit()
+    return db.query(models.ExpenseCategory).all()
+
+
+@router.delete("/categories/expenses/{name}", response_model=list[schemas.CategoryOut])
 def remove_expense_category(name: str, db: Session = Depends(get_db)):
     count = db.query(models.ExpenseCategory).count()
     if count <= MIN_ITEMS:
@@ -62,29 +74,29 @@ def remove_expense_category(name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Category not found")
     db.delete(row)
     db.commit()
-    return [r.name for r in db.query(models.ExpenseCategory).all()]
+    return db.query(models.ExpenseCategory).all()
 
 
 # ── Saving categories ──────────────────────────────────────────────────────────
 
-@router.get("/categories/savings", response_model=list[str])
+@router.get("/categories/savings", response_model=list[schemas.CategoryOut])
 def get_saving_categories(db: Session = Depends(get_db)):
-    return [r.name for r in db.query(models.SavingCategory).all()]
+    return db.query(models.SavingCategory).all()
 
 
-@router.post("/categories/savings", response_model=list[str], status_code=status.HTTP_201_CREATED)
+@router.post("/categories/savings", response_model=list[schemas.CategoryOut], status_code=status.HTTP_201_CREATED)
 def add_saving_category(payload: schemas.CategoryCreate, db: Session = Depends(get_db)):
     existing = db.query(models.SavingCategory).filter(
         models.SavingCategory.name == payload.name
     ).first()
     if existing:
         raise HTTPException(status_code=409, detail="Category already exists")
-    db.add(models.SavingCategory(name=payload.name))
+    db.add(models.SavingCategory(name=payload.name, color=payload.color))
     db.commit()
-    return [r.name for r in db.query(models.SavingCategory).all()]
+    return db.query(models.SavingCategory).all()
 
 
-@router.put("/categories/savings/{name}", response_model=list[str])
+@router.put("/categories/savings/{name}", response_model=list[schemas.CategoryOut])
 def rename_saving_category(name: str, payload: schemas.CategoryRename, db: Session = Depends(get_db)):
     """
     QUAL-07: Rename a saving category in one transaction, cascading the new name
@@ -101,10 +113,22 @@ def rename_saving_category(name: str, payload: schemas.CategoryRename, db: Sessi
     db.query(models.Saving).filter(models.Saving.category == name).update({"category": payload.new_name})
     row.name = payload.new_name
     db.commit()
-    return [r.name for r in db.query(models.SavingCategory).all()]
+    return db.query(models.SavingCategory).all()
 
 
-@router.delete("/categories/savings/{name}", response_model=list[str])
+@router.patch("/categories/savings/{name}", response_model=list[schemas.CategoryOut])
+def update_saving_category(name: str, payload: schemas.CategoryUpdate, db: Session = Depends(get_db)):
+    """FEAT-12: partial PATCH — only fields present in the request body are updated (color set/clear)."""
+    row = db.query(models.SavingCategory).filter(models.SavingCategory.name == name).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Category not found")
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(row, field, value)
+    db.commit()
+    return db.query(models.SavingCategory).all()
+
+
+@router.delete("/categories/savings/{name}", response_model=list[schemas.CategoryOut])
 def remove_saving_category(name: str, db: Session = Depends(get_db)):
     count = db.query(models.SavingCategory).count()
     if count <= MIN_ITEMS:
@@ -114,7 +138,7 @@ def remove_saving_category(name: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Category not found")
     db.delete(row)
     db.commit()
-    return [r.name for r in db.query(models.SavingCategory).all()]
+    return db.query(models.SavingCategory).all()
 
 
 # ── Card types ─────────────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import MonthView           from './pages/MonthView';
 import DebtsView           from './pages/DebtsView';
 import SettingsView        from './pages/SettingsView';
 import CardsView           from './pages/CardsView';
+import CategoriesView      from './pages/CategoriesView';
 import BudgetAllocationView from './pages/BudgetAllocationView';
 import GlobalSalaryView    from './pages/GlobalSalaryView';
 import FixedExpensesView   from './pages/FixedExpensesView';
@@ -40,6 +41,7 @@ function parsePath(path) {
     : parts[0] === 'settings' && parts[1] === 'salary'                  ? 'globalSalary'
     : parts[0] === 'settings' && parts[1] === 'budget'                  ? 'budgetAllocation'
     : parts[0] === 'settings' && parts[1] === 'cards'                   ? 'cards'
+    : parts[0] === 'settings' && parts[1] === 'categories'              ? 'categories'
     : parts[0] === 'settings'                                            ? 'settings'
     : parts[0] === 'debts'                                               ? 'debts'
     : 'home';
@@ -132,6 +134,58 @@ export default function App() {
     [appData.cardTypes]
   );
 
+  // FEAT-12: category color maps — { [name]: color|null } for badge tinting
+  const expenseCategoryColors = useMemo(
+    () => Object.fromEntries(appData.expenseCategoryObjects.map(c => [c.name, c.color])),
+    [appData.expenseCategoryObjects]
+  );
+  const savingCategoryColors = useMemo(
+    () => Object.fromEntries(appData.savingCategoryObjects.map(c => [c.name, c.color])),
+    [appData.savingCategoryObjects]
+  );
+
+  // FEAT-12: toast-wrapped category color handlers
+  async function handleUpdateExpenseCategoryColor(name, color) {
+    try { await appData.updateExpenseCategoryColor(name, color); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not update category color.'}`); }
+  }
+
+  async function handleUpdateSavingCategoryColor(name, color) {
+    try { await appData.updateSavingCategoryColor(name, color); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not update category color.'}`); }
+  }
+
+  // FEAT-12 / QUAL-01: toast-wrapped add/rename/remove handlers for categories
+  async function handleAddExpenseCategory(name) {
+    try { await appData.addExpenseCategory(name); showToast('Category added.'); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not add category.'}`); throw err; }
+  }
+
+  async function handleRenameExpenseCategory(oldName, newName) {
+    try { await appData.renameExpenseCategory(oldName, newName); showToast('Category renamed.'); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not rename category.'}`); throw err; }
+  }
+
+  async function handleRemoveExpenseCategory(name) {
+    try { await appData.removeExpenseCategory(name); showToast('Category deleted.'); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not delete category.'}`); throw err; }
+  }
+
+  async function handleAddSavingCategory(name) {
+    try { await appData.addSavingCategory(name); showToast('Category added.'); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not add category.'}`); throw err; }
+  }
+
+  async function handleRenameSavingCategory(oldName, newName) {
+    try { await appData.renameSavingCategory(oldName, newName); showToast('Category renamed.'); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not rename category.'}`); throw err; }
+  }
+
+  async function handleRemoveSavingCategory(name) {
+    try { await appData.removeSavingCategory(name); showToast('Category deleted.'); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not delete category.'}`); throw err; }
+  }
+
   return (
     <>
       <Header
@@ -189,6 +243,9 @@ export default function App() {
                 cardColors={cardColors}
                 addCardType={appData.addCardType}
                 removeCardType={appData.removeCardType}
+                // Category colors (FEAT-12)
+                expenseCategoryColors={expenseCategoryColors}
+                savingCategoryColors={savingCategoryColors}
                 // Categories
                 expenseCategories={appData.expenseCategories}
                 addExpenseCategory={appData.addExpenseCategory}
@@ -279,10 +336,27 @@ export default function App() {
                 addCardType={appData.addCardType}
                 removeCardType={appData.removeCardType}
                 expenseCategories={appData.expenseCategories}
+                expenseCategoryColors={expenseCategoryColors}
                 addExpenseCategory={appData.addExpenseCategory}
                 removeExpenseCategory={appData.removeExpenseCategory}
                 renameExpenseCategory={appData.renameExpenseCategory}
                 showToast={showToast}
+              />
+            } />
+
+            {/* Categories settings (FEAT-12) */}
+            <Route path="/settings/categories" element={
+              <CategoriesView
+                expenseCategoryObjects={appData.expenseCategoryObjects}
+                savingCategoryObjects={appData.savingCategoryObjects}
+                onAddExpenseCategory={handleAddExpenseCategory}
+                onRemoveExpenseCategory={handleRemoveExpenseCategory}
+                onRenameExpenseCategory={handleRenameExpenseCategory}
+                onUpdateExpenseCategoryColor={handleUpdateExpenseCategoryColor}
+                onAddSavingCategory={handleAddSavingCategory}
+                onRemoveSavingCategory={handleRemoveSavingCategory}
+                onRenameSavingCategory={handleRenameSavingCategory}
+                onUpdateSavingCategoryColor={handleUpdateSavingCategoryColor}
               />
             } />
           </Routes>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import * as api from '../services/api';
 import { useExpenses } from './useExpenses';
 import { useSavings } from './useSavings';
@@ -33,6 +33,7 @@ export function useAppData() {
       api.getPeople(),
     ]).then(([cards, expCats, savCats, entries, config, ppl]) => {
       cardsHook.initCardTypes(cards);
+      // expCats and savCats are now [{name, color}] objects (FEAT-12)
       categoriesHook.initExpenseCategories(expCats);
       categoriesHook.initSavingCategories(savCats);
 
@@ -43,6 +44,17 @@ export function useAppData() {
       expensesHook.initPeople(ppl);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Derive string[] from category objects so existing consumers need no changes ─
+  // ExpenseModal, SavingModal, PermanentExpenseModal, FixedExpensesPage all expect string[].
+  const expenseCategories = useMemo(
+    () => categoriesHook.expenseCategories.map(c => c.name),
+    [categoriesHook.expenseCategories]
+  );
+  const savingCategories = useMemo(
+    () => categoriesHook.savingCategories.map(c => c.name),
+    [categoriesHook.savingCategories]
+  );
 
   // ── Flat merged return — same shape as the old useExpenses return ────────────
   return {
@@ -79,15 +91,21 @@ export function useAppData() {
     ensureSalaryForMonth:  incomeHook.ensureSalaryForMonth,
     saveBaseSalary:        incomeHook.saveBaseSalary,
 
-    // Categories domain
-    expenseCategories:     categoriesHook.expenseCategories,
-    savingCategories:      categoriesHook.savingCategories,
+    // Categories domain — string[] for backward-compatible consumers
+    expenseCategories,
+    savingCategories,
     addExpenseCategory:    categoriesHook.addExpenseCategory,
     removeExpenseCategory: categoriesHook.removeExpenseCategory,
     renameExpenseCategory: categoriesHook.renameExpenseCategory,
     addSavingCategory:     categoriesHook.addSavingCategory,
     removeSavingCategory:  categoriesHook.removeSavingCategory,
     renameSavingCategory:  categoriesHook.renameSavingCategory,
+
+    // Categories domain — full objects + color mutation (FEAT-12 additions)
+    expenseCategoryObjects:       categoriesHook.expenseCategories,
+    savingCategoryObjects:        categoriesHook.savingCategories,
+    updateExpenseCategoryColor:   categoriesHook.updateExpenseCategoryColor,
+    updateSavingCategoryColor:    categoriesHook.updateSavingCategoryColor,
 
     // Cards domain
     cardTypes:         cardsHook.cardTypes,

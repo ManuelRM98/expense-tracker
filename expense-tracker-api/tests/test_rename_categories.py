@@ -1,7 +1,15 @@
 """
 QUAL-07: Rename endpoints for expense categories, saving categories, and card types.
 Verifies cascade update to referencing rows and conflict/not-found error cases.
+
+Updated for FEAT-12: category endpoints now return list[CategoryOut] ({name, color})
+instead of list[str].
 """
+
+
+def _names(response_json):
+    """Extract name list from list[CategoryOut] response."""
+    return [c["name"] for c in response_json]
 
 
 def test_rename_expense_category_cascades(client):
@@ -14,8 +22,9 @@ def test_rename_expense_category_cascades(client):
 
     res = client.put("/categories/expenses/Food", json={"new_name": "Dining"})
     assert res.status_code == 200
-    assert "Dining" in res.json()
-    assert "Food" not in res.json()
+    names = _names(res.json())
+    assert "Dining" in names
+    assert "Food" not in names
 
     # The existing expense must now have the new category
     expenses = client.get("/expenses").json()
@@ -43,7 +52,7 @@ def test_rename_saving_category_cascades(client):
 
     res = client.put("/categories/savings/Investment", json={"new_name": "ETF Fund"})
     assert res.status_code == 200
-    assert "ETF Fund" in res.json()
+    assert "ETF Fund" in _names(res.json())
 
     savings = client.get("/savings").json()
     assert savings[0]["category"] == "ETF Fund"

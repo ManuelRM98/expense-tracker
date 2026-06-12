@@ -60,6 +60,14 @@ function toCard(d) {
   };
 }
 
+// Category objects — both expense and saving categories share the same shape
+function toCategory(d) {
+  return {
+    name:  d.name,
+    color: d.color ?? null,
+  };
+}
+
 function toSaving(d) {
   return {
     id:       d.id,
@@ -233,39 +241,61 @@ export async function getPeople() {
 // ── Expense categories ─────────────────────────────────────────────────────────
 
 export async function getExpenseCategories() {
-  return request('GET', '/categories/expenses');
+  const data = await request('GET', '/categories/expenses');
+  return data.map(toCategory);
 }
 
-export async function addExpenseCategory(name) {
-  return request('POST', '/categories/expenses', { name });
+/** Accepts optional color; returns [{name, color}] */
+export async function addExpenseCategory(name, color = null) {
+  const data = await request('POST', '/categories/expenses', { name, color });
+  return data.map(toCategory);
 }
 
 export async function removeExpenseCategory(name) {
-  return request('DELETE', `/categories/expenses/${encodeURIComponent(name)}`);
+  const data = await request('DELETE', `/categories/expenses/${encodeURIComponent(name)}`);
+  return data.map(toCategory);
 }
 
-/** Part C.2: PUT /categories/expenses/{name} body {new_name} → string[] */
+/** PUT /categories/expenses/{name} body {new_name} → [{name, color}] */
 export async function renameExpenseCategory(oldName, newName) {
-  return request('PUT', `/categories/expenses/${encodeURIComponent(oldName)}`, { new_name: newName });
+  const data = await request('PUT', `/categories/expenses/${encodeURIComponent(oldName)}`, { new_name: newName });
+  return data.map(toCategory);
+}
+
+/** PATCH /categories/expenses/{name} body {color} → [{name, color}]; null resets to default */
+export async function updateExpenseCategoryColor(name, color) {
+  const data = await request('PATCH', `/categories/expenses/${encodeURIComponent(name)}`, { color });
+  return data.map(toCategory);
 }
 
 // ── Saving categories ──────────────────────────────────────────────────────────
 
 export async function getSavingCategories() {
-  return request('GET', '/categories/savings');
+  const data = await request('GET', '/categories/savings');
+  return data.map(toCategory);
 }
 
-export async function addSavingCategory(name) {
-  return request('POST', '/categories/savings', { name });
+/** Accepts optional color; returns [{name, color}] */
+export async function addSavingCategory(name, color = null) {
+  const data = await request('POST', '/categories/savings', { name, color });
+  return data.map(toCategory);
 }
 
 export async function removeSavingCategory(name) {
-  return request('DELETE', `/categories/savings/${encodeURIComponent(name)}`);
+  const data = await request('DELETE', `/categories/savings/${encodeURIComponent(name)}`);
+  return data.map(toCategory);
 }
 
-/** Part C.2: PUT /categories/savings/{name} body {new_name} → string[] */
+/** PUT /categories/savings/{name} body {new_name} → [{name, color}] */
 export async function renameSavingCategory(oldName, newName) {
-  return request('PUT', `/categories/savings/${encodeURIComponent(oldName)}`, { new_name: newName });
+  const data = await request('PUT', `/categories/savings/${encodeURIComponent(oldName)}`, { new_name: newName });
+  return data.map(toCategory);
+}
+
+/** PATCH /categories/savings/{name} body {color} → [{name, color}]; null resets to default */
+export async function updateSavingCategoryColor(name, color) {
+  const data = await request('PATCH', `/categories/savings/${encodeURIComponent(name)}`, { color });
+  return data.map(toCategory);
 }
 
 // ── Card types ─────────────────────────────────────────────────────────────────

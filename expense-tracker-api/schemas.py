@@ -132,11 +132,27 @@ class TemplateOut(TemplateBase):
 # ── Categories & Cards ─────────────────────────────────────────────────────────
 
 class CategoryCreate(BaseModel):
-    name: str
+    name:  str
+    color: str | None = None   # FEAT-12: optional #rrggbb hex
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v):
+        return _validate_color(v)
 
 class CategoryOut(BaseModel):
-    name: str
+    name:  str
+    color: str | None          # FEAT-12: #rrggbb hex or None (= use accent vars)
     model_config = ConfigDict(from_attributes=True)
+
+class CategoryUpdate(BaseModel):
+    """FEAT-12: partial PATCH — only fields present in the request body are updated."""
+    color: str | None = None
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v):
+        return _validate_color(v)
 
 class CategoryRename(BaseModel):
     """QUAL-07: payload for rename endpoints."""

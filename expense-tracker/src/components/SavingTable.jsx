@@ -2,7 +2,7 @@ import { fmtCOP, fmtDate } from '../utils/format';
 
 const COLOR = 'var(--savings)';
 
-export default function SavingTable({ savings, cardColors, onEdit, onDelete, onClone, onAdd }) {
+export default function SavingTable({ savings, cardColors, categoryColors, onEdit, onDelete, onClone, onAdd }) {
   const sorted = [...savings].sort((a, b) => {
     const d = b.date.localeCompare(a.date);
     return d !== 0 ? d : a.id - b.id;
@@ -36,7 +36,7 @@ export default function SavingTable({ savings, cardColors, onEdit, onDelete, onC
           <table style={s.table}>
             <thead>
               <tr>
-                {['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', ''].map(h => (
+                {['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', 'Actions'].map(h => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -47,7 +47,14 @@ export default function SavingTable({ savings, cardColors, onEdit, onDelete, onC
                   <td style={{ ...s.td, ...s.tdDate }}>{fmtDate(sv.date)}</td>
                   <td style={{ ...s.td, ...s.tdDesc }}>{sv.desc}</td>
                   <td style={s.td}>
-                    <span style={s.badgeCat}>{sv.category}</span>
+                    {(() => {
+                      const catColor = categoryColors?.[sv.category] ?? null;
+                      return (
+                        <span style={{ ...s.badgeCat, ...(catColor ? { background: catColor + '1A', color: catColor } : {}) }}>
+                          {sv.category}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td style={{ ...s.td, ...s.tdPrice }}>{fmtCOP(sv.price)}</td>
                   <td style={s.td}>
@@ -68,21 +75,23 @@ export default function SavingTable({ savings, cardColors, onEdit, onDelete, onC
                       : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
-                    <button style={s.iconBtn} title="Edit" onClick={() => onEdit(sv)}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                      </svg>
-                    </button>
-                    <button style={{ ...s.iconBtn, ...s.iconClone }} title="Duplicate" onClick={() => onClone(sv)}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                      </svg>
-                    </button>
-                    <button style={{ ...s.iconBtn, ...s.iconDel }} title="Delete" onClick={() => onDelete(sv.id)}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                      </svg>
-                    </button>
+                    <div style={s.actions}>
+                      <button style={s.iconBtn} title="Edit" onClick={() => onEdit(sv)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                      </button>
+                      <button style={{ ...s.iconBtn, ...s.iconClone }} title="Duplicate" onClick={() => onClone(sv)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                      </button>
+                      <button style={{ ...s.iconBtn, ...s.iconDel }} title="Delete" onClick={() => onDelete(sv.id)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M6 19c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                        </svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -143,10 +152,14 @@ const s = {
   badgeYes:  { display:'inline-flex', alignItems:'center', borderRadius:20, padding:'3px 10px', fontSize:12, fontWeight:600, background:'var(--badge-yes-bg)', color:'var(--badge-yes-text)' },
   badgeNo:   { display:'inline-flex', alignItems:'center', borderRadius:20, padding:'3px 10px', fontSize:12, fontWeight:600, background:'var(--badge-no-bg)',  color:'var(--badge-no-text)' },
   badgeCard: { display:'inline-flex', alignItems:'center', borderRadius:20, padding:'3px 10px', fontSize:12, fontWeight:600, background:'var(--accent-light)', color:'var(--accent)' },
+  actions: { display: 'inline-flex', gap: 6, alignItems: 'center' },
   iconBtn: {
-    background:'none', border:'none', cursor:'pointer', padding:6,
-    borderRadius:8, color:'var(--text-tertiary)', display:'inline-flex',
+    width: 28, height: 28, borderRadius: '50%',
+    border: '1px solid var(--border)', background: 'var(--surface-2)',
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
+    justifyContent: 'center', flexShrink: 0, padding: 0,
+    color: 'var(--text-secondary)', transition: 'background 0.15s',
   },
-  iconClone: { color: 'var(--savings)' },
+  iconClone: { color: 'var(--text-secondary)' },
   iconDel: { color: 'var(--danger)' },
 };

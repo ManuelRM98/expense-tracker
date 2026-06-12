@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import * as api from '../services/api';
 
 /**
- * DEBT-03: extracted from useExpenses — owns expense categories and saving categories
- * (add, remove, rename for each).
+ * DEBT-03: extracted from useExpenses — owns expense categories and saving categories.
+ * State holds [{name, color}] objects (FEAT-12: was string[]).
  */
 export function useCategories({ initialExpCats = [], initialSavCats = [] } = {}) {
   const [expenseCategories,  setExpenseCategories]  = useState(initialExpCats);
@@ -16,8 +16,8 @@ export function useCategories({ initialExpCats = [], initialSavCats = [] } = {})
 
   // ── Expense categories ────────────────────────────────────────────────────────
 
-  const addExpenseCategory = useCallback(async (name) => {
-    const cats = await api.addExpenseCategory(name);
+  const addExpenseCategory = useCallback(async (name, color = null) => {
+    const cats = await api.addExpenseCategory(name, color);
     setExpenseCategories(cats);
   }, []);
 
@@ -31,10 +31,15 @@ export function useCategories({ initialExpCats = [], initialSavCats = [] } = {})
     setExpenseCategories(cats);
   }, []);
 
+  const updateExpenseCategoryColor = useCallback(async (name, color) => {
+    const cats = await api.updateExpenseCategoryColor(name, color);
+    setExpenseCategories(cats);
+  }, []);
+
   // ── Saving categories ─────────────────────────────────────────────────────────
 
-  const addSavingCategory = useCallback(async (name) => {
-    const cats = await api.addSavingCategory(name);
+  const addSavingCategory = useCallback(async (name, color = null) => {
+    const cats = await api.addSavingCategory(name, color);
     setSavingCategories(cats);
   }, []);
 
@@ -48,6 +53,11 @@ export function useCategories({ initialExpCats = [], initialSavCats = [] } = {})
     setSavingCategories(cats);
   }, []);
 
+  const updateSavingCategoryColor = useCallback(async (name, color) => {
+    const cats = await api.updateSavingCategoryColor(name, color);
+    setSavingCategories(cats);
+  }, []);
+
   return {
     expenseCategories,
     savingCategories,
@@ -56,8 +66,10 @@ export function useCategories({ initialExpCats = [], initialSavCats = [] } = {})
     addExpenseCategory,
     removeExpenseCategory,
     renameExpenseCategory,
+    updateExpenseCategoryColor,
     addSavingCategory,
     removeSavingCategory,
     renameSavingCategory,
+    updateSavingCategoryColor,
   };
 }
