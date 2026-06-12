@@ -34,7 +34,7 @@ export default function MonthView({
   getSavingsForMonth,  loadSavingsForMonth,
   addExpense, bulkAddExpenses, updateExpense, deleteExpense,
   addSaving, updateSaving, deleteSaving,
-  cardTypes, addCardType, removeCardType,
+  cardTypes, cardColors, addCardType, removeCardType,
   expenseCategories, addExpenseCategory, removeExpenseCategory, renameExpenseCategory,
   savingCategories, addSavingCategory, removeSavingCategory, renameSavingCategory,
   getIncome, getIncomeEntries, fetchIncomeForYear,
@@ -366,6 +366,7 @@ export default function MonthView({
             />
             <ExpenseTable
               expenses={monthExpenses}
+              cardColors={cardColors}
               onEdit={openEdit}
               onDelete={handleDelete}
               onClone={openCloneExpense}
@@ -390,6 +391,7 @@ export default function MonthView({
             />
             <SavingTable
               savings={monthSavings}
+              cardColors={cardColors}
               onEdit={openEditSaving}
               onDelete={handleDeleteSaving}
               onClone={openCloneSaving}

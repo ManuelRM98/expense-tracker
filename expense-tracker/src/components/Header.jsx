@@ -20,9 +20,7 @@ export default function Header({ onAdd, addLabel, btnColor, onHome }) {
 
 const styles = {
   header: {
-    background: 'rgba(255,255,255,0.85)',
-    backdropFilter: 'blur(20px)',
-    WebkitBackdropFilter: 'blur(20px)',
+    background: 'var(--surface)',
     borderBottom: '1px solid var(--border)',
     position: 'sticky',
     top: 0,

@@ -146,7 +146,7 @@ function PreviewCard({ label, pct, amount, color }) {
 const s = {
   page: { maxWidth: 640, margin: '0 auto', padding: '32px 24px 80px' },
   header: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 },
-  back: { background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--accent)', padding: 4, display: 'flex', alignItems: 'center' },
+  back: { width: 38, height: 38, borderRadius: '50%', border: '1.5px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   title: { fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px', color: 'var(--text-primary)', margin: 0 },
   section: { marginBottom: 28 },
   sectionTitle: { fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 },

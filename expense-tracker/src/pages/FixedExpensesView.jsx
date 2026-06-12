@@ -7,7 +7,7 @@ import { useFixedExpenses } from '../hooks/useFixedExpenses';
  * Owns its own useFixedExpenses hook.
  */
 export default function FixedExpensesView({
-  cardTypes, addCardType, removeCardType,
+  cardTypes, cardColors, addCardType, removeCardType,
   expenseCategories, addExpenseCategory, removeExpenseCategory, renameExpenseCategory,
   showToast,
 }) {
@@ -25,6 +25,7 @@ export default function FixedExpensesView({
       onDelete={deleteTemplate}
       onToggle={toggleTemplate}
       cardTypes={cardTypes}
+      cardColors={cardColors}
       onAddCard={addCardType}
       onRemoveCard={removeCardType}
       expenseCategories={expenseCategories}

@@ -94,6 +94,7 @@ export function useAppData() {
     addCardType:       cardsHook.addCardType,
     removeCardType:    cardsHook.removeCardType,
     updateCardCutOff:  cardsHook.updateCardCutOff,
+    updateCardColor:   cardsHook.updateCardColor,
     renameCard:        cardsHook.renameCard,
   };
 }

@@ -30,12 +30,18 @@ export function useCards({ initialCards = [] } = {}) {
     setCardTypes(types);
   }, []);
 
+  const updateCardColor = useCallback(async (name, color) => {
+    const types = await api.updateCardColor(name, color);
+    setCardTypes(types);
+  }, []);
+
   return {
     cardTypes,
     initCardTypes,
     addCardType,
     removeCardType,
     updateCardCutOff,
+    updateCardColor,
     renameCard,
   };
 }

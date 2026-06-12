@@ -3,7 +3,7 @@ import { fmtCOP, fmtDate } from '../utils/format';
 
 const COLS = ['Date', 'Description', 'Category', 'Price', 'Card?', 'Card Type', 'Who Paid', ''];
 
-export default function ExpenseTable({ expenses, onEdit, onDelete, onClone, onAddFixed, onAddVariable }) {
+export default function ExpenseTable({ expenses, cardColors, onEdit, onDelete, onClone, onAddFixed, onAddVariable }) {
   const [activeTab, setActiveTab] = useState('Variable');
 
   if (expenses.length === 0) {
@@ -65,6 +65,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onClone, onAd
             color="var(--accent)"
             expenses={variable}
             total={variableTotal}
+            cardColors={cardColors}
             onEdit={onEdit}
             onDelete={onDelete}
             onClone={onClone}
@@ -77,6 +78,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onClone, onAd
             color="var(--warning)"
             expenses={fixed}
             total={fixedTotal}
+            cardColors={cardColors}
             onEdit={onEdit}
             onDelete={onDelete}
             onClone={onClone}
@@ -88,7 +90,7 @@ export default function ExpenseTable({ expenses, onEdit, onDelete, onClone, onAd
   );
 }
 
-function Section({ title, color, expenses, total, onEdit, onDelete, onClone, onAdd }) {
+function Section({ title, color, expenses, total, cardColors, onEdit, onDelete, onClone, onAdd }) {
   return (
     <div style={s.section}>
       <div style={s.sectionHeader}>
@@ -139,7 +141,14 @@ function Section({ title, color, expenses, total, onEdit, onDelete, onClone, onA
                   </td>
                   <td style={s.td}>
                     {e.cardType
-                      ? <span style={s.badgeCard}>{e.cardType}</span>
+                      ? (() => {
+                          const color = cardColors?.[e.cardType] ?? null;
+                          return (
+                            <span style={{ ...s.badgeCard, ...(color ? { background: color + '1A', color } : {}) }}>
+                              {e.cardType}
+                            </span>
+                          );
+                        })()
                       : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={s.td}>{e.whoPaid}</td>

@@ -93,13 +93,9 @@ const s = {
     marginBottom: 28,
   },
   back: {
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    color: 'var(--accent)',
-    padding: 4,
-    display: 'flex',
-    alignItems: 'center',
+    width: 38, height: 38, borderRadius: '50%', border: '1.5px solid var(--border)',
+    background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   title: {
     fontSize: 28,

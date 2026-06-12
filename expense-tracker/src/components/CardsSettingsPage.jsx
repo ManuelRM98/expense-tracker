@@ -1,12 +1,28 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
-export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, onUpdateCardCutOff, onRenameCard, onBack }) {
+const PALETTE = [
+  '#007aff', // blue (Apple default)
+  '#34c759', // green
+  '#ff9500', // orange
+  '#ff3b30', // red
+  '#af52de', // purple
+  '#ff2d55', // pink
+  '#5ac8fa', // teal
+  '#a2845e', // brown
+];
+
+export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, onUpdateCardCutOff, onUpdateCardColor, onRenameCard, onBack }) {
   const [newCardName, setNewCardName] = useState('');
   const [addingCard,  setAddingCard]  = useState(false);
   const [pendingCutOff, setPendingCutOff] = useState({});  // { [name]: string }
   // Part C.2: rename state — { [name]: string } for inline editing
   const [renamingCard, setRenamingCard] = useState(null);  // name being renamed
   const [renameValue,  setRenameValue]  = useState('');
+  // Color picker open state — one at a time
+  const [colorPickerOpen, setColorPickerOpen] = useState(null); // card name or null
+
+  // Refs for hidden native color inputs (one per card, keyed by name)
+  const colorInputRefs = useRef({});
 
   function handleAddCard() {
     const name = newCardName.trim();
@@ -38,6 +54,21 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
     setRenamingCard(null);
   }
 
+  function toggleColorPicker(name) {
+    setColorPickerOpen(prev => (prev === name ? null : name));
+  }
+
+  async function handleSelectColor(cardName, hex) {
+    setColorPickerOpen(null);
+    if (onUpdateCardColor) {
+      try {
+        await onUpdateCardColor(cardName, hex);
+      } catch {
+        // errors surfaced by the App-level wrapper via toast
+      }
+    }
+  }
+
   return (
     <div style={s.page}>
       <div style={s.header}>
@@ -50,8 +81,9 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
       </div>
 
       <p style={s.description}>
-        Assign a cut-off date to each card. If a purchase is made on or after the cut-off day,
-        it will be recorded in the following month.
+        Assign a color and a cut-off date to each card. The color is used for the card&apos;s
+        badge in the expense tables. If a purchase is made on or after the cut-off day, it
+        will be recorded in the following month.
       </p>
 
       <div style={s.card}>
@@ -60,7 +92,11 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
             {i > 0 && <div style={s.divider} />}
             <div style={s.row}>
               <div style={s.rowLeft}>
-                <div style={s.cardIcon}>
+                {/* Card icon — tinted when a color is set */}
+                <div style={{
+                  ...s.cardIcon,
+                  ...(card.color ? { background: card.color + '1A', color: card.color } : {}),
+                }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
                   </svg>
@@ -98,6 +134,20 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
                 )}
               </div>
               <div style={s.rowRight}>
+                {/* Color well — labeled form control mirroring the cut-off group */}
+                <div style={s.colorGroup}>
+                  <span style={s.colorLabel}>Color</span>
+                  <button
+                    style={{
+                      ...s.colorWell,
+                      background: card.color ?? 'var(--accent)',
+                    }}
+                    title={`Pick color for "${card.name}"`}
+                    onClick={() => toggleColorPicker(card.name)}
+                    aria-label={`Color for ${card.name}: ${card.color ?? 'default'}`}
+                    aria-expanded={colorPickerOpen === card.name}
+                  />
+                </div>
                 <div style={s.cutOffGroup}>
                   <label style={s.cutOffLabel}>Cut-off day</label>
                   <input
@@ -133,6 +183,57 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
                 </button>
               </div>
             </div>
+
+            {/* Inline swatch picker — shown below the row when open */}
+            {colorPickerOpen === card.name && (
+              <div style={s.swatchRow}>
+                {PALETTE.map(hex => (
+                  <button
+                    key={hex}
+                    style={{
+                      ...s.swatch,
+                      background: hex,
+                      // Selected ring when this swatch matches the card's current color
+                      ...(card.color === hex ? s.swatchSelected : {}),
+                    }}
+                    title={hex}
+                    onClick={() => handleSelectColor(card.name, hex)}
+                    aria-label={`Color ${hex}`}
+                  />
+                ))}
+
+                {/* "Clear / default" swatch — sets color to null */}
+                <button
+                  style={{
+                    ...s.swatch,
+                    background: 'var(--accent-light)',
+                    border: '1.5px solid var(--accent)',
+                    ...(card.color === null ? s.swatchSelected : {}),
+                  }}
+                  title="Default (accent)"
+                  onClick={() => handleSelectColor(card.name, null)}
+                  aria-label="Default color"
+                >
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', lineHeight: 1 }}>A</span>
+                </button>
+
+                {/* Custom / free-pick — rainbow ring + hidden <input type="color"> */}
+                <button
+                  style={{ ...s.swatch, ...s.swatchCustom }}
+                  title="Custom color"
+                  onClick={() => colorInputRefs.current[card.name]?.click()}
+                  aria-label="Custom color"
+                />
+                {/* Hidden native color picker */}
+                <input
+                  type="color"
+                  style={s.hiddenColorInput}
+                  ref={el => { colorInputRefs.current[card.name] = el; }}
+                  defaultValue={card.color ?? '#007aff'}
+                  onChange={e => handleSelectColor(card.name, e.target.value)}
+                />
+              </div>
+            )}
           </div>
         ))}
 
@@ -163,7 +264,7 @@ export default function CardsSettingsPage({ cardTypes, onAddCard, onRemoveCard, 
       </div>
 
       <p style={s.hint}>
-        The cut-off day is optional. Without it, expenses always stay in the transaction's month.
+        The cut-off day is optional. Without it, expenses always stay in the transaction&apos;s month.
       </p>
     </div>
   );
@@ -182,10 +283,9 @@ const s = {
     marginBottom: 12,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: '50%',
-    border: 'none', background: 'var(--bg)',
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: 'var(--text-secondary)', flexShrink: 0,
+    width: 38, height: 38, borderRadius: '50%', border: '1.5px solid var(--border)',
+    background: 'var(--surface)', cursor: 'pointer', color: 'var(--text-secondary)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
   title: {
     fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px',
@@ -219,6 +319,21 @@ const s = {
     background: 'var(--accent-light)', color: 'var(--accent)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
   },
+  colorGroup: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+  },
+  colorLabel: {
+    fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+    letterSpacing: '0.5px', color: 'var(--text-secondary)',
+  },
+  // iOS-style color well: filled circle with affordance ring
+  colorWell: {
+    width: 28, height: 28, borderRadius: '50%',
+    border: '2px solid var(--border)',
+    // Inner white/surface gap so the color fill reads cleanly against any bg
+    boxShadow: 'inset 0 0 0 2px var(--surface)',
+    cursor: 'pointer', flexShrink: 0, padding: 0,
+  },
   cardName: {
     fontSize: 15, fontWeight: 600, color: 'var(--text-primary)',
   },
@@ -243,6 +358,34 @@ const s = {
   removeBtnDisabled: {
     opacity: 0.3, cursor: 'not-allowed',
   },
+  // ── Swatch picker ────────────────────────────────────────────────────────────
+  swatchRow: {
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+    padding: '10px 20px 14px 20px',
+    background: 'var(--surface-2)',
+  },
+  swatch: {
+    width: 28, height: 28, borderRadius: '50%',
+    border: '2px solid transparent',
+    cursor: 'pointer', padding: 0, flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'transform 0.1s',
+  },
+  swatchSelected: {
+    // Visible ring around the active swatch — uses outline so any bg color works
+    outline: '2px solid var(--text-primary)',
+    outlineOffset: 2,
+    transform: 'scale(1.1)',
+  },
+  swatchCustom: {
+    // Rainbow conic-gradient ring to indicate "any color"
+    background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
+    border: '2px solid transparent',
+  },
+  hiddenColorInput: {
+    position: 'absolute', width: 0, height: 0, opacity: 0, pointerEvents: 'none',
+  },
+  // ── Add row ──────────────────────────────────────────────────────────────────
   addRow: {
     display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px',
   },

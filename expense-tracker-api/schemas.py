@@ -142,12 +142,35 @@ class CategoryRename(BaseModel):
     """QUAL-07: payload for rename endpoints."""
     new_name: str
 
+_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+def _validate_color(v: str | None) -> str | None:
+    """FEAT-11: color must be None or a valid #rrggbb hex string (normalized lowercase)."""
+    if v is None:
+        return None
+    if not _COLOR_RE.match(v):
+        raise ValueError("color must be a 6-digit hex color in #rrggbb format (e.g. '#007aff')")
+    return v.lower()
+
 class CardCreate(BaseModel):
     name:        str
     cut_off_day: int | None = None   # 1-31 or None
+    color:       str | None = None   # FEAT-11: #rrggbb hex or None
 
-class CardCutOffUpdate(BaseModel):
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v):
+        return _validate_color(v)
+
+class CardUpdate(BaseModel):
+    """FEAT-11: replaces CardCutOffUpdate — both fields optional for partial PATCH semantics."""
     cut_off_day: int | None = None
+    color:       str | None = None
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v):
+        return _validate_color(v)
 
 class CardRename(BaseModel):
     """QUAL-07: payload for card-type rename endpoint."""
@@ -156,6 +179,7 @@ class CardRename(BaseModel):
 class CardOut(BaseModel):
     name:        str
     cut_off_day: int | None
+    color:       str | None   # FEAT-11: #rrggbb hex or None (= use accent vars)
     model_config = ConfigDict(from_attributes=True)
 
 

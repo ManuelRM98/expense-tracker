@@ -2,7 +2,7 @@ import { fmtCOP, fmtDate } from '../utils/format';
 
 const COLOR = 'var(--savings)';
 
-export default function SavingTable({ savings, onEdit, onDelete, onClone, onAdd }) {
+export default function SavingTable({ savings, cardColors, onEdit, onDelete, onClone, onAdd }) {
   const sorted = [...savings].sort((a, b) => {
     const d = b.date.localeCompare(a.date);
     return d !== 0 ? d : a.id - b.id;
@@ -57,7 +57,14 @@ export default function SavingTable({ savings, onEdit, onDelete, onClone, onAdd 
                   </td>
                   <td style={s.td}>
                     {sv.cardType
-                      ? <span style={s.badgeCard}>{sv.cardType}</span>
+                      ? (() => {
+                          const color = cardColors?.[sv.cardType] ?? null;
+                          return (
+                            <span style={{ ...s.badgeCard, ...(color ? { background: color + '1A', color } : {}) }}>
+                              {sv.cardType}
+                            </span>
+                          );
+                        })()
                       : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ ...s.td, whiteSpace: 'nowrap' }}>

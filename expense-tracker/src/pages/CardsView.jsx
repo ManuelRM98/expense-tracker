@@ -4,7 +4,7 @@ import CardsSettingsPage from '../components/CardsSettingsPage';
 /**
  * DEBT-02: Route-level component for /settings/cards.
  */
-export default function CardsView({ cardTypes, onAddCard, onRemoveCard, onUpdateCardCutOff, onRenameCard }) {
+export default function CardsView({ cardTypes, onAddCard, onRemoveCard, onUpdateCardCutOff, onUpdateCardColor, onRenameCard }) {
   const navigate = useNavigate();
   return (
     <CardsSettingsPage
@@ -12,6 +12,7 @@ export default function CardsView({ cardTypes, onAddCard, onRemoveCard, onUpdate
       onAddCard={onAddCard}
       onRemoveCard={onRemoveCard}
       onUpdateCardCutOff={onUpdateCardCutOff}
+      onUpdateCardColor={onUpdateCardColor}
       onRenameCard={onRenameCard}
       onBack={() => navigate('/settings')}
     />

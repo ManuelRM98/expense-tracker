@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
 import { useAppData } from './hooks/useAppData';
 import { useFixedExpenses } from './hooks/useFixedExpenses';
@@ -121,6 +121,17 @@ export default function App() {
     catch (err) { showToast(`Error: ${err.message ?? 'Could not rename card.'}`); }
   }
 
+  async function handleUpdateCardColor(name, color) {
+    try { await appData.updateCardColor(name, color); }
+    catch (err) { showToast(`Error: ${err.message ?? 'Could not update card color.'}`); }
+  }
+
+  // Memoized { [name]: color } lookup — passed to tables for badge tinting
+  const cardColors = useMemo(
+    () => Object.fromEntries(appData.cardTypes.map(c => [c.name, c.color])),
+    [appData.cardTypes]
+  );
+
   return (
     <>
       <Header
@@ -175,6 +186,7 @@ export default function App() {
                 deleteSaving={appData.deleteSaving}
                 // Cards
                 cardTypes={appData.cardTypes}
+                cardColors={cardColors}
                 addCardType={appData.addCardType}
                 removeCardType={appData.removeCardType}
                 // Categories
@@ -238,6 +250,7 @@ export default function App() {
                 onAddCard={appData.addCardType}
                 onRemoveCard={appData.removeCardType}
                 onUpdateCardCutOff={appData.updateCardCutOff}
+                onUpdateCardColor={handleUpdateCardColor}
                 onRenameCard={handleRenameCard}
               />
             } />
@@ -262,6 +275,7 @@ export default function App() {
             <Route path="/settings/fixed-expenses" element={
               <FixedExpensesView
                 cardTypes={appData.cardTypes}
+                cardColors={cardColors}
                 addCardType={appData.addCardType}
                 removeCardType={appData.removeCardType}
                 expenseCategories={appData.expenseCategories}

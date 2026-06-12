@@ -11,7 +11,7 @@ const ORDINAL = (d) => {
 export default function FixedExpensesPage({
   templates,
   onAdd, onUpdate, onDelete, onToggle,
-  cardTypes, onAddCard, onRemoveCard,
+  cardTypes, cardColors, onAddCard, onRemoveCard,
   expenseCategories, onAddCategory, onRemoveCategory,
   onBack,
   showToast,
@@ -101,6 +101,7 @@ export default function FixedExpensesPage({
         title="Active"
         color="var(--warning)"
         templates={active}
+        cardColors={cardColors}
         onEdit={openEdit}
         onDelete={handleDelete}
         onToggle={onToggle}
@@ -112,6 +113,7 @@ export default function FixedExpensesPage({
           title="Inactive"
           color="var(--text-tertiary)"
           templates={inactive}
+          cardColors={cardColors}
           onEdit={openEdit}
           onDelete={handleDelete}
           onToggle={onToggle}
@@ -148,7 +150,7 @@ export default function FixedExpensesPage({
   );
 }
 
-function TemplateSection({ title, color, templates, onEdit, onDelete, onToggle }) {
+function TemplateSection({ title, color, templates, cardColors, onEdit, onDelete, onToggle }) {
   return (
     <div style={s.section}>
       <div style={s.sectionHeader}>
@@ -190,7 +192,14 @@ function TemplateSection({ title, color, templates, onEdit, onDelete, onToggle }
                   </td>
                   <td style={s.td}>
                     {t.cardType
-                      ? <span style={s.badgeCard}>{t.cardType}</span>
+                      ? (() => {
+                          const color = cardColors?.[t.cardType] ?? null;
+                          return (
+                            <span style={{ ...s.badgeCard, ...(color ? { background: color + '1A', color } : {}) }}>
+                              {t.cardType}
+                            </span>
+                          );
+                        })()
                       : <span style={{ color: 'var(--text-tertiary)' }}>—</span>}
                   </td>
                   <td style={{ ...s.td, whiteSpace: 'nowrap' }}>

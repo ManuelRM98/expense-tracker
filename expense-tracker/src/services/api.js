@@ -56,6 +56,7 @@ function toCard(d) {
   return {
     name:       d.name,
     cutOffDay:  d.cut_off_day ?? null,
+    color:      d.color ?? null,
   };
 }
 
@@ -275,7 +276,7 @@ export async function getCardTypes() {
 }
 
 export async function addCardType(name) {
-  const data = await request('POST', '/cards', { name, cut_off_day: null });
+  const data = await request('POST', '/cards', { name, cut_off_day: null, color: null });
   return data.map(toCard);
 }
 
@@ -286,6 +287,11 @@ export async function removeCardType(name) {
 
 export async function updateCardCutOff(name, cutOffDay) {
   const data = await request('PATCH', `/cards/${encodeURIComponent(name)}`, { cut_off_day: cutOffDay });
+  return data.map(toCard);
+}
+
+export async function updateCardColor(name, color) {
+  const data = await request('PATCH', `/cards/${encodeURIComponent(name)}`, { color });
   return data.map(toCard);
 }
 

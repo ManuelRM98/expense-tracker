@@ -90,6 +90,7 @@ class CardType(Base):
 
     name        = Column(String,  primary_key=True)
     cut_off_day = Column(Integer, nullable=True)   # 1-31; None = no cut-off logic
+    color       = Column(String,  nullable=True)   # FEAT-11: #rrggbb hex or NULL (= accent fallback)
 
 
 class MonthBudget(Base):

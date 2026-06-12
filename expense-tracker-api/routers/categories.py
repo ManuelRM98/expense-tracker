@@ -129,7 +129,7 @@ def add_card_type(payload: schemas.CardCreate, db: Session = Depends(get_db)):
     existing = db.query(models.CardType).filter(models.CardType.name == payload.name).first()
     if existing:
         raise HTTPException(status_code=409, detail="Card type already exists")
-    db.add(models.CardType(name=payload.name, cut_off_day=payload.cut_off_day))
+    db.add(models.CardType(name=payload.name, cut_off_day=payload.cut_off_day, color=payload.color))
     db.commit()
     return db.query(models.CardType).all()
 
@@ -158,11 +158,13 @@ def rename_card_type(name: str, payload: schemas.CardRename, db: Session = Depen
 
 
 @router.patch("/cards/{name}", response_model=list[schemas.CardOut])
-def update_card_cut_off(name: str, payload: schemas.CardCutOffUpdate, db: Session = Depends(get_db)):
+def update_card(name: str, payload: schemas.CardUpdate, db: Session = Depends(get_db)):
+    """FEAT-11: partial PATCH — only fields present in the request body are updated."""
     row = db.query(models.CardType).filter(models.CardType.name == name).first()
     if not row:
         raise HTTPException(status_code=404, detail="Card type not found")
-    row.cut_off_day = payload.cut_off_day
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(row, field, value)
     db.commit()
     return db.query(models.CardType).all()
 
