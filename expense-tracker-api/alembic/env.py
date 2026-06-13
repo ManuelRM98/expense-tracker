@@ -15,8 +15,10 @@ load_dotenv()
 # Alembic Config object — provides access to values in alembic.ini
 alembic_config = context.config
 
-# Wire DATABASE_URL from environment (overrides the placeholder in alembic.ini)
-database_url = os.getenv("DATABASE_URL", "sqlite:///./expense_tracker.db")
+# Wire DATABASE_URL from environment (overrides the placeholder in alembic.ini).
+# Reuse database.py's already-normalized URL so the postgresql:// -> postgresql+psycopg://
+# rewrite is applied here too — otherwise Alembic defaults to the (uninstalled) psycopg2.
+from database import DATABASE_URL as database_url
 alembic_config.set_main_option("sqlalchemy.url", database_url)
 
 # Set up loggers from alembic.ini

@@ -10,3 +10,4 @@ python-dotenv==1.0.1
 pydantic>=2.0,<3      # DEP-01: explicit direct dependency; FastAPI requires pydantic v2
 alembic>=1.13,<2      # DEBT-01: Alembic for proper schema migrations
 slowapi>=0.1.9,<1     # SEC-05: rate limiting
+psycopg[binary]>=3.1,<4  # PostgreSQL driver (Supabase migration); SQLite needs no driver

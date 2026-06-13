@@ -16,6 +16,12 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB}"
 # SEC-05: disable rate limiting in tests so the suite never hits throttle limits
 os.environ["DISABLE_RATE_LIMIT"] = "1"
 
+# SEC-02: force API-key auth OFF in tests. database.py calls load_dotenv(), which
+# would otherwise pull API_KEY from the real .env (set for the Supabase migration)
+# and make every test 401. Setting it here first wins — load_dotenv won't override
+# an existing env var. The dedicated key tests patch main._API_KEY directly.
+os.environ["API_KEY"] = ""
+
 import pytest
 from fastapi.testclient import TestClient
 

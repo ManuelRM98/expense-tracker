@@ -30,8 +30,10 @@ services:
       - "8000:8000"
     volumes:
       - ./expense-tracker-api:/app
-    environment:
-      - DATABASE_URL=sqlite:///./expense_tracker.db
+    # The gitignored .env is the single source of truth for DATABASE_URL and API_KEY
+    # (Supabase migration). Falls back to the SQLite default in database.py if unset.
+    env_file:
+      - ./expense-tracker-api/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]

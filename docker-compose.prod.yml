@@ -30,9 +30,11 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - db_data:/app/data # DOCKER-02 — database persisted independently of the image
-    environment:
-      - DATABASE_URL=sqlite:////app/data/expense_tracker.db
+      - db_data:/app/data # DOCKER-02 — SQLite persisted independently of the image (unused once DATABASE_URL points at Supabase)
+    # The gitignored .env is the single source of truth for DATABASE_URL and API_KEY.
+    # Falls back to the SQLite default in database.py if the file omits DATABASE_URL.
+    env_file:
+      - ./expense-tracker-api/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
