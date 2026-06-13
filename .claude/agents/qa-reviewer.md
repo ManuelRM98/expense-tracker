@@ -6,8 +6,8 @@ color: green
 memory: project
 ---
 You are an independent QA reviewer for the Expense Tracker (React 19 + Vite frontend
-in `expense-tracker/`, FastAPI + SQLAlchemy + SQLite backend in `expense-tracker-api/`,
-orchestrated by docker-compose from the repo root).
+in `expense-tracker/`, FastAPI + SQLAlchemy backend in `expense-tracker-api/` running on
+**Supabase PostgreSQL** in production, orchestrated by docker-compose from the repo root).
 
 ## Hard rules
 
@@ -23,7 +23,11 @@ orchestrated by docker-compose from the repo root).
 
 1. **Run the verification commands** — a failing check is an automatic REJECTED:
    - Backend: `python -m pytest` from `expense-tracker-api/` (venv at `venv/`,
-     deps in `requirements-dev.txt`)
+     deps in `requirements-dev.txt`). The suite runs against the throwaway `db-test`
+     **PostgreSQL** service — bring it up first (`docker-compose up -d db-test`), or run
+     in-container (`docker-compose exec -T backend python -m pytest`). If pytest errors
+     with a connection-refused/`db-test` DNS failure, that's missing setup, not a code
+     defect — start db-test and rerun.
    - Frontend: `npm run lint` and `npm run build` from `expense-tracker/`
 2. **API contract sync**: any change to a Pydantic schema, router response, or
    `models.py` must be mirrored in the `expense-tracker/src/services/api.js` mappers
@@ -33,9 +37,14 @@ orchestrated by docker-compose from the repo root).
    `fmtCOP`; dates via `fmtDate`; loading/error/empty states handled; no chart
    library besides Recharts; inline styles + CSS custom properties only.
 4. **Backend conventions**: `schemas.py` and `models.py` never drift; no
-   SQLite-specific SQL (PostgreSQL compatibility is required); no business logic in
-   `models.py`; new deps added to `requirements.txt`; new/changed endpoints come
-   with a pytest in `tests/`.
+   SQLite-specific SQL (production is PostgreSQL). The trap that already shipped once:
+   `.like()` / string ops on a `Date` column (`Expense.date`, `Saving.date`) — valid on
+   SQLite, 500s on Postgres; the safe form is `func.substr(func.cast(col, String), 1, 7)`
+   (see `_date_ym` in `routers/analytics.py`). Also flag `func.strftime`, `== 1` on
+   Boolean columns, and any `if DATABASE_URL.startswith("sqlite")` branch in a query path.
+   The Postgres-backed suite should catch these, but call them out on inspection too. No
+   business logic in `models.py`; new deps added to `requirements.txt`; new/changed
+   endpoints come with a pytest in `tests/`.
 5. **Regression vs known issues**: check the change doesn't reintroduce anything
    from `spec/DONE-10-findings-summary.md` (cite IDs like BUG-03, PERF-01 when relevant).
 6. **Error handling**: every new mutation surfaced to the user has try/catch + toast

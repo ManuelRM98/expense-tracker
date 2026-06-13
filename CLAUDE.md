@@ -38,8 +38,11 @@ npm run dev
 Run these after any change; fix failures before reporting done.
 
 ```bash
-# backend (from expense-tracker-api/)
-python -m pytest                  # test suite in expense-tracker-api/tests/
+# backend — runs against the throwaway `db-test` PostgreSQL (same dialect as prod),
+# so start it first or run inside the backend container:
+docker-compose up -d db-test
+docker-compose exec -T backend python -m pytest   # or, from a host venv: python -m pytest
+                                                  # (host runs need db-test on localhost:5440)
 
 # frontend (from expense-tracker/)
 npm run lint
@@ -53,8 +56,10 @@ backend. The single integration point is `expense-tracker/src/services/api.js`, 
 holds the HTTP client plus camelCase ↔ snake_case mappers for every entity. Any change
 to a Pydantic schema, router response, or `models.py` column must be mirrored in those
 mappers, and vice versa — schema/mapper drift is the #1 cross-cutting failure mode here.
-The database is SQLite by default but must stay PostgreSQL-compatible: `DATABASE_URL`
-in `expense-tracker-api/.env` is the only switch, so never use SQLite-specific SQL.
+Production runs on **Supabase PostgreSQL** (local dev may still use SQLite via
+`DATABASE_URL` in `expense-tracker-api/.env`, the only switch), so never use
+SQLite-specific SQL — most commonly `.like()`/string ops on a `Date` column, which 500s
+on Postgres. The test suite runs on PostgreSQL (`db-test`) to catch exactly this.
 
 ## Known issues
 

@@ -15,6 +15,15 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 MONTH_KEY_PATTERN = r"^\d{4}-\d{2}$"
 
 
+def _date_ym(date_col):
+    """
+    PG-safe 'YYYY-MM' extraction from a Date column.
+    Replaces SQLite-only `date.like('YYYY-MM%')`, which raises in PostgreSQL
+    because LIKE has no operator on a DATE column. Mirrors expense_trend().
+    """
+    return func.substr(func.cast(date_col, String), 1, 7)
+
+
 def _billing_month_filter(model_cls, month_key: str):
     """
     BUG-03: Return the ORM filter expression that respects billing_month.
@@ -23,7 +32,7 @@ def _billing_month_filter(model_cls, month_key: str):
     """
     return or_(
         model_cls.billing_month == month_key,
-        (model_cls.billing_month == None) & model_cls.date.like(f"{month_key}%"),
+        (model_cls.billing_month == None) & (_date_ym(model_cls.date) == month_key),
     )
 
 
@@ -40,7 +49,7 @@ def _month_summary(month_key: str, db: Session) -> schemas.MonthlySummary:
         _billing_month_filter(models.Expense, month_key)
     ).all()
     savings = db.query(models.Saving).filter(
-        models.Saving.date.like(f"{month_key}%")
+        _date_ym(models.Saving.date) == month_key
     ).all()
     income_rows = db.query(models.IncomeEntry).filter(
         models.IncomeEntry.month_key == month_key
@@ -94,11 +103,11 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
     expenses = db.query(models.Expense).filter(
         or_(
             models.Expense.billing_month.like(f"{year}-%"),
-            (models.Expense.billing_month == None) & models.Expense.date.like(f"{year}-%"),
+            (models.Expense.billing_month == None) & _date_ym(models.Expense.date).like(f"{year}-%"),
         )
     ).all()
     savings = db.query(models.Saving).filter(
-        models.Saving.date.like(f"{year}-%")
+        _date_ym(models.Saving.date).like(f"{year}-%")
     ).all()
     income_rows = db.query(models.IncomeEntry).filter(
         models.IncomeEntry.month_key.like(f"{year}-%")

@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.types import String
 from uuid import uuid4
 
 import models
@@ -21,7 +23,10 @@ def get_savings(month: str | None = None, db: Session = Depends(get_db)):
     """Returns all savings. Filter by month using ?month=YYYY-MM."""
     q = db.query(models.Saving)
     if month:
-        q = q.filter(models.Saving.date.like(f"{month}%"))
+        # PG-safe 'YYYY-MM' extraction: LIKE has no operator on a DATE column in
+        # PostgreSQL (worked only under SQLite's TEXT-stored dates).
+        date_ym = func.substr(func.cast(models.Saving.date, String), 1, 7)
+        q = q.filter(date_ym == month)
     return q.order_by(models.Saving.date.desc()).all()
 
 

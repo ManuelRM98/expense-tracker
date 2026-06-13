@@ -1,6 +1,5 @@
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 # Backend modules use flat imports (import models) — make them resolvable
@@ -9,9 +8,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # DATABASE_URL must be set before importing database/main: the engine URL is read
 # at import time, and main.py runs create_all/migrations/seeding on import.
-# Without this, the test run would touch the real expense_tracker.db.
-_TEST_DB = Path(tempfile.mkdtemp(prefix="expense_tracker_test_")) / "test.db"
-os.environ["DATABASE_URL"] = f"sqlite:///{_TEST_DB}"
+#
+# Tests run against a throwaway PostgreSQL (the db-test compose service), NOT SQLite,
+# so the suite exercises the SAME dialect as production Supabase. SQLite is dynamically
+# typed and would silently accept PG-invalid SQL — e.g. LIKE on a DATE column — letting
+# it pass CI and then 500 in production. The DB host defaults to localhost:5440 for
+# host-venv runs; docker-compose sets TEST_DATABASE_URL=...@db-test:5432 for in-container
+# runs. Override TEST_DATABASE_URL to point elsewhere.
+_DEFAULT_TEST_DB = "postgresql+psycopg://postgres:postgres@localhost:5440/expense_test"
+_TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", _DEFAULT_TEST_DB)
+
+# Safety: every test does drop_all/create_all. Running that against the real Supabase
+# database would wipe production. Refuse anything that isn't an obviously-disposable PG.
+assert "supabase" not in _TEST_DB_URL.lower(), (
+    "TEST_DATABASE_URL points at Supabase — refusing to run the destructive test suite "
+    "against production. Use the throwaway db-test service (host port 5440)."
+)
+assert _TEST_DB_URL.startswith(("postgresql://", "postgresql+psycopg://")), (
+    f"Tests must run on PostgreSQL to match production; got: {_TEST_DB_URL}"
+)
+os.environ["DATABASE_URL"] = _TEST_DB_URL
 
 # SEC-05: disable rate limiting in tests so the suite never hits throttle limits
 os.environ["DISABLE_RATE_LIMIT"] = "1"

@@ -34,12 +34,39 @@ services:
     # (Supabase migration). Falls back to the SQLite default in database.py if unset.
     env_file:
       - ./expense-tracker-api/.env
+    # The pytest suite runs against db-test (NOT the runtime DATABASE_URL above), so it
+    # exercises the same PostgreSQL dialect as production — SQLite would silently accept
+    # PG-invalid SQL. Only conftest.py reads TEST_DATABASE_URL; runtime ignores it.
+    environment:
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@db-test:5432/expense_test
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/')"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
+
+  # Throwaway PostgreSQL for the test suite ONLY. Data lives in tmpfs (RAM) and is
+  # recreated drop_all/create_all per test — never point this at real data. Mirrors
+  # the production Supabase major version (PG 17). Host port 5440 lets you also run
+  # `python -m pytest` from the host venv against it.
+  db-test:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: expense_test
+    ports:
+      - "5440:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d expense_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
       start_period: 5s
 
 volumes:

@@ -10,7 +10,18 @@ You are a specialized Backend Engineer Agent for the Expense Tracker project. An
 
 - Repo root: `expense-tracker/` — backend lives in `expense-tracker-api/`
 - Python 3.10+, FastAPI + Uvicorn, SQLAlchemy ORM
-- Database: SQLite by default (`expense_tracker.db`). The schema must remain **PostgreSQL-compatible** — the user can switch DBs by changing a single `.env` line, so never use SQLite-specific syntax in models or queries.
+- Database: **production runs on Supabase PostgreSQL**; local dev and the test suite use SQLite. `DATABASE_URL` is the only switch. This means PostgreSQL compatibility is a **live correctness requirement, not theoretical** — SQLite-only SQL passes every test and then 500s in production.
+
+### PostgreSQL compatibility traps (read before writing any query)
+
+SQLite is dynamically typed and stores `Date` columns as TEXT, so several things "work" there and break on Postgres. The most common, in order of how often they bite:
+
+- **`LIKE` / string ops on a `Date` column.** `models.Expense.date.like(f"{month}%")` raises `operator does not exist: date ~~ unknown` on Postgres. `date`/created-date columns are SQLAlchemy `Date`, NOT strings. To filter a `Date` column by `YYYY-MM`, extract a string first with the project's established pattern: `func.substr(func.cast(model.date, String), 1, 7) == month` (see the `_date_ym` helper in `routers/analytics.py`). `.like()` is only safe on columns that are genuinely `String` (e.g. `billing_month`, `month_key`).
+- **`func.strftime(...)`** is SQLite-only — never use it in a query; use `func.substr(func.cast(col, String), ...)` or `func.extract(...)`. (Python-side `datetime.strftime` on a value you already fetched is fine.)
+- **Boolean columns**: compare with `== True`/`.is_(True)`, never `== 1`.
+- **`==`/`!=` against `None`** must stay as `== None` / `.is_(None)` (SQLAlchemy renders `IS NULL`) — fine as-is, just don't "simplify" to `is None`.
+
+The test suite now runs against a throwaway **PostgreSQL** (the `db-test` compose service), so it **will catch these** — a PG-only SQL error fails the relevant test instead of reaching production. Run it with `db-test` up: `docker-compose up -d db-test && docker-compose exec -T backend python -m pytest`. Never special-case the dialect with `if DATABASE_URL.startswith("sqlite")` in a query path; write one query that is valid on both.
 - Config: environment variables loaded from `expense-tracker-api/.env` (`DATABASE_URL`)
 - Containerization: Docker. The API runs as one of two services in `docker-compose.yml` at the repo root. Hot-reload is enabled via volume mounts — no rebuild needed for Python changes.
 - API served at http://localhost:8000 — interactive Swagger docs at http://localhost:8000/docs
@@ -25,7 +36,7 @@ expense-tracker-api/
 ├── schemas.py       # Pydantic request/response schemas
 ├── database.py      # Engine, SessionLocal, Base
 ├── routers/         # One file per domain (expenses, savings, income, fixed_expenses, debts, budget, categories, analytics, config)
-├── tests/           # pytest suite (httpx TestClient, isolated SQLite per run)
+├── tests/           # pytest suite (TestClient, throwaway PostgreSQL db-test, fresh schema per test)
 ├── .env             # DATABASE_URL
 └── requirements.txt
 ```
@@ -51,7 +62,7 @@ expenses · savings · income · fixed-expenses (with `/generate/{month_key}`) �
 1. Before adding a new route, check if a similar one exists in the relevant router file
 2. When changing a response shape, update the Pydantic schema and state the contract change clearly in your report — the frontend consumes these endpoints through `expense-tracker/src/services/api.js` mappers, which must be updated to match
 3. Schema changes that affect the DB require a migration strategy — do not silently alter the DB
-4. **After implementing, run the verification commands and fix failures before reporting done:** `python -m pytest` from `expense-tracker-api/`. A task is not done with a red suite.
+4. **After implementing, run the verification commands and fix failures before reporting done:** `python -m pytest` from `expense-tracker-api/`, which requires the `db-test` Postgres service running (`docker-compose up -d db-test`; in-container runner: `docker-compose exec -T backend python -m pytest`). The suite runs on PostgreSQL, matching production — a task is not done with a red suite.
 5. If a task requires restructuring the router layout, database engine config, or Docker networking, consult the Architect Agent first
 
 ## Output expectations

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
+from sqlalchemy.types import String
 from uuid import uuid4
 
 import models
@@ -41,10 +42,13 @@ def get_expenses(month: str | None = None, db: Session = Depends(get_db)):
     """
     q = db.query(models.Expense)
     if month:
+        # PG-safe 'YYYY-MM' extraction: LIKE has no operator on a DATE column in
+        # PostgreSQL (worked only under SQLite's TEXT-stored dates).
+        date_ym = func.substr(func.cast(models.Expense.date, String), 1, 7)
         q = q.filter(
             or_(
                 models.Expense.billing_month == month,
-                (models.Expense.billing_month == None) & models.Expense.date.like(f"{month}%"),
+                (models.Expense.billing_month == None) & (date_ym == month),
             )
         )
     return q.order_by(models.Expense.date.desc()).all()
