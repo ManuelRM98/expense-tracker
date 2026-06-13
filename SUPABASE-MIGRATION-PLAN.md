@@ -1,3 +1,4 @@
+
 # Supabase Migration + Read-Only MCP — Secure Implementation Plan
 
 ## Context
