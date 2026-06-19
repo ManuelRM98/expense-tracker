@@ -126,14 +126,22 @@ app.add_middleware(SlowAPIMiddleware)
 # API key auth middleware (SEC-02) — added before CORS so auth runs on all real requests
 app.middleware("http")(api_key_middleware)
 
-# CORS (SEC-02: explicit methods and headers instead of wildcards)
+# CORS (SEC-02: explicit methods and headers instead of wildcards).
+# allow_origin_regex permits localhost plus any private-LAN address (192.168.x,
+# 10.x, 172.16-31.x) and .local mDNS names, on any port — so the app reaches the
+# API from other devices on the home network. API-key auth (above) still guards
+# every route; CORS is only the browser allow-list, not the security boundary.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://localhost:5175",   # Vite uses next available port if 5173/5174 are taken
-    ],
+    allow_origin_regex=(
+        r"^http://("
+        r"localhost|127\.0\.0\.1|"
+        r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"192\.168\.\d{1,3}\.\d{1,3}|"
+        r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|"
+        r"[\w-]+\.local"
+        r")(:\d+)?$"
+    ),
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type", "X-API-Key"],
 )

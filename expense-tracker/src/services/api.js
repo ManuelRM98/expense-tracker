@@ -1,4 +1,9 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+// Default to the same host the app was opened from (so it works from any device on
+// the LAN: phone, tablet, another laptop). Set VITE_API_URL to override (e.g. a fixed
+// or public host). On the host machine this still resolves to http://localhost:8000.
+const BASE_URL =
+  import.meta.env.VITE_API_URL ??
+  `${window.location.protocol}//${window.location.hostname}:8000`;
 
 /** Part C.4: send X-API-Key header on every request if VITE_API_KEY is set */
 const API_KEY = import.meta.env.VITE_API_KEY || null;
