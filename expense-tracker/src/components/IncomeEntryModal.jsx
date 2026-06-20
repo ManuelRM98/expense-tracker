@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fmtCOP } from '../utils/format';
+import { fmtCOP, formatAmountInput, parseAmount } from '../utils/format';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
 import { DragHandle } from '../utils/mobileModal';
@@ -26,9 +26,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
         incomeType:     entry.incomeType,
         description:    entry.description,
         currency:       entry.currency,
-        originalAmount: entry.originalAmount != null ? String(entry.originalAmount) : '',
-        exchangeRate:   entry.exchangeRate   != null ? String(entry.exchangeRate)   : '',
-        amountCop:      String(entry.amountCop),
+        originalAmount: entry.originalAmount != null ? formatAmountInput(String(entry.originalAmount)) : '',
+        exchangeRate:   entry.exchangeRate   != null ? formatAmountInput(String(entry.exchangeRate))   : '',
+        amountCop:      formatAmountInput(String(entry.amountCop)),
       }
     : DEFAULT
   );
@@ -39,9 +39,11 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
       const next = { ...f, [field]: val };
       // Auto-calculate amountCop when currency=USD and both fields filled
       if (next.currency === 'USD') {
-        const usd = parseInt(next.originalAmount, 10) || 0;
-        const trm = parseInt(next.exchangeRate,   10) || 0;
-        if (usd > 0 && trm > 0) next.amountCop = String(usd * trm);
+        const usd = parseAmount(next.originalAmount) || 0;
+        const trm = parseAmount(next.exchangeRate)   || 0;
+        if (usd > 0 && trm > 0) {
+          next.amountCop = formatAmountInput((Math.round(usd * trm * 100) / 100).toString());
+        }
       }
       // Reset USD fields when switching to COP
       if (field === 'currency' && val === 'COP') {
@@ -57,10 +59,10 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
     const e = {};
     if (!form.description.trim())          e.description    = 'Required';
     if (form.currency === 'USD') {
-      if (!parseInt(form.originalAmount))  e.originalAmount = 'Required';
-      if (!parseInt(form.exchangeRate))    e.exchangeRate   = 'Required';
+      if (!parseAmount(form.originalAmount))  e.originalAmount = 'Required';
+      if (!parseAmount(form.exchangeRate))    e.exchangeRate   = 'Required';
     }
-    if (!parseInt(form.amountCop))         e.amountCop      = 'Required';
+    if (!parseAmount(form.amountCop))         e.amountCop      = 'Required';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -72,9 +74,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
       incomeType:     form.incomeType,
       description:    form.description.trim(),
       currency:       form.currency,
-      originalAmount: form.currency === 'USD' ? parseInt(form.originalAmount, 10) : null,
-      exchangeRate:   form.currency === 'USD' ? parseInt(form.exchangeRate,   10) : null,
-      amountCop:      parseInt(form.amountCop, 10),
+      originalAmount: form.currency === 'USD' ? parseAmount(form.originalAmount) : null,
+      exchangeRate:   form.currency === 'USD' ? parseAmount(form.exchangeRate)   : null,
+      amountCop:      parseAmount(form.amountCop),
     });
   }
 
@@ -82,9 +84,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
 
   if (!open) return null;
 
-  const usd    = parseInt(form.originalAmount, 10) || 0;
-  const trm    = parseInt(form.exchangeRate,   10) || 0;
-  const copVal = parseInt(form.amountCop,      10) || 0;
+  const usd    = parseAmount(form.originalAmount) || 0;
+  const trm    = parseAmount(form.exchangeRate)   || 0;
+  const copVal = parseAmount(form.amountCop)      || 0;
 
   return (
     <div style={getModalOverlayStyle(isMobile)} onClick={onClose}>
@@ -148,9 +150,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
                 <input
                   style={{ ...s.input, borderColor: errors.originalAmount ? 'var(--danger)' : 'var(--border)' }}
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   value={form.originalAmount}
-                  onChange={e => set('originalAmount', e.target.value.replace(/\D/g, ''))}
+                  onChange={e => set('originalAmount', formatAmountInput(e.target.value))}
                   placeholder="500"
                 />
                 {errors.originalAmount && <span style={s.err}>{errors.originalAmount}</span>}
@@ -161,9 +163,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
                 <input
                   style={{ ...s.input, borderColor: errors.exchangeRate ? 'var(--danger)' : 'var(--border)' }}
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   value={form.exchangeRate}
-                  onChange={e => set('exchangeRate', e.target.value.replace(/\D/g, ''))}
+                  onChange={e => set('exchangeRate', formatAmountInput(e.target.value))}
                   placeholder="4200"
                 />
                 {errors.exchangeRate && <span style={s.err}>{errors.exchangeRate}</span>}
@@ -187,9 +189,9 @@ export default function IncomeEntryModal({ open, entry, monthKey, onSave, onClos
                 background: form.currency === 'USD' ? 'var(--bg-secondary, var(--surface))' : 'var(--bg)',
               }}
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               value={form.amountCop}
-              onChange={e => set('amountCop', e.target.value.replace(/\D/g, ''))}
+              onChange={e => set('amountCop', formatAmountInput(e.target.value))}
               placeholder="2100000"
               readOnly={form.currency === 'USD'}
             />

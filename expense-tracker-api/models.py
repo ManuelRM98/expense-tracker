@@ -1,5 +1,9 @@
-from sqlalchemy import Column, String, Integer, Boolean, Date, DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy import Column, String, Integer, Numeric, Boolean, Date, DateTime, ForeignKey, UniqueConstraint, func
 from database import Base
+
+# Money columns store amounts with 2 decimals (e.g. USD cents, COP with decimals).
+# NUMERIC keeps exact precision — never use float for currency.
+Money = Numeric(14, 2)
 
 
 # ── AUTH-01: App-side user profile ────────────────────────────────────────────
@@ -27,7 +31,7 @@ class Expense(Base):
     date      = Column(Date,    nullable=False, index=True)      # PERF-05: index for date queries
     desc      = Column(String,  nullable=False)
     category  = Column(String,  nullable=False)
-    price     = Column(Integer, nullable=False)                  # Colombian pesos, integer
+    price     = Column(Money,   nullable=False)                  # Colombian pesos, 2 decimals
     card_pay      = Column(String,  nullable=False)              # "Yes" | "No"
     who_paid      = Column(String,  nullable=False)
     card_type     = Column(String,  nullable=False, default="")  # empty when card_pay="No"
@@ -43,7 +47,7 @@ class Saving(Base):
     date      = Column(Date,   nullable=False, index=True)       # PERF-05: index for date queries
     desc      = Column(String, nullable=False)
     category  = Column(String, nullable=False)
-    price     = Column(Integer, nullable=False)
+    price     = Column(Money,   nullable=False)
     card_pay  = Column(String,  nullable=False)
     card_type = Column(String,  nullable=False, default="")
 
@@ -67,9 +71,9 @@ class IncomeEntry(Base):
     income_type     = Column(String,  nullable=False)               # "salary" | "bonus" | "other"
     description     = Column(String,  nullable=False)
     currency        = Column(String,  nullable=False, default="COP")  # "COP" | "USD"
-    original_amount = Column(Integer, nullable=True)                # amount in source currency (USD)
-    exchange_rate   = Column(Integer, nullable=True)                # TRM COP/USD at time of entry
-    amount_cop      = Column(Integer, nullable=False)               # final amount in COP — used by formulas
+    original_amount = Column(Money,   nullable=True)                # amount in source currency (USD)
+    exchange_rate   = Column(Money,   nullable=True)                # TRM COP/USD at time of entry
+    amount_cop      = Column(Money,   nullable=False)               # final amount in COP — used by formulas
 
 
 class FixedExpenseTemplate(Base):
@@ -78,7 +82,7 @@ class FixedExpenseTemplate(Base):
     id           = Column(String,  primary_key=True, index=True)
     user_id      = Column(String, ForeignKey("app_users.id"), nullable=False, index=True)  # AUTH-01
     name         = Column(String,  nullable=False)
-    amount       = Column(Integer, nullable=False)
+    amount       = Column(Money,   nullable=False)
     category     = Column(String,  nullable=False)
     day_of_month = Column(Integer, nullable=False)   # 1-31
     who_paid     = Column(String,  nullable=False)
@@ -147,7 +151,7 @@ class Debt(Base):
     direction          = Column(String,  nullable=False)              # "they_owe_me" | "i_owe_them"
     person             = Column(String,  nullable=False)
     description        = Column(String,  nullable=False)
-    amount             = Column(Integer, nullable=False)              # original debt amount in COP
+    amount             = Column(Money,   nullable=False)              # original debt amount in COP
     linked_expense_id  = Column(String,  nullable=True)               # optional FK to expenses.id
     is_settled         = Column(Boolean, nullable=False, default=False)
     created_date       = Column(Date,    nullable=False, index=True)  # PERF-05: index for date queries
@@ -159,6 +163,6 @@ class DebtPayment(Base):
 
     id       = Column(String,  primary_key=True, index=True)
     debt_id  = Column(String,  ForeignKey("debts.id", ondelete="CASCADE"), nullable=False, index=True)
-    amount   = Column(Integer, nullable=False)
+    amount   = Column(Money,   nullable=False)
     date     = Column(Date,    nullable=False)
     note     = Column(String,  nullable=False, default="")

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { parseAmount } from '../utils/format';
 import AnnualDashboard from '../components/AnnualDashboard';
 import ExpenseModal from '../components/ExpenseModal';
 
@@ -72,7 +73,7 @@ export default function HomeView({
             direction:       entry.direction,
             person:          entry.person,
             description:     data.desc,
-            amount:          parseInt(String(entry.amount).replace(/\D/g, ''), 10),
+            amount:          parseAmount(String(entry.amount)),
             linkedExpenseId: expenseId,
             createdDate:     data.date,
           });

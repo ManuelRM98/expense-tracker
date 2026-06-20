@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatAmountInput, parseAmount } from '../utils/format';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
 import { DragHandle } from '../utils/mobileModal';
@@ -52,8 +53,7 @@ export default function PermanentExpenseModal({
   }
 
   function formatAmount(raw) {
-    const digits = raw.replace(/\D/g, '');
-    return digits ? parseInt(digits, 10).toLocaleString('es-CO') : '';
+    return formatAmountInput(raw);
   }
 
   function validate() {
@@ -78,7 +78,7 @@ export default function PermanentExpenseModal({
     if (!validate()) return;
     onSave({
       name:       form.name.trim(),
-      amount:     parseInt(form.amount.replace(/\D/g, ''), 10),
+      amount:     parseAmount(form.amount),
       category:   form.category,
       dayOfMonth: parseInt(form.dayOfMonth, 10),
       whoPaid:    form.whoPaid.trim(),
@@ -149,7 +149,7 @@ export default function PermanentExpenseModal({
             <div style={s.group}>
               <label style={s.label}>Amount (COP $)</label>
               <input
-                type="text" inputMode="numeric" placeholder="e.g. 45,000"
+                type="text" inputMode="decimal" placeholder="e.g. 45.000"
                 style={{ ...s.input, ...(errors.amount ? s.inputError : {}) }}
                 value={form.amount}
                 onChange={e => set('amount', formatAmount(e.target.value))}

@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { fmtCOP, MONTH_NAMES } from '../utils/format';
+import { fmtCOP, MONTH_NAMES, parseAmount } from '../utils/format';
 import ExpenseTable from '../components/ExpenseTable';
 import SavingTable from '../components/SavingTable';
 import BudgetCards from '../components/BudgetCards';
@@ -153,7 +153,7 @@ export default function MonthView({
             direction:       entry.direction,
             person:          entry.person,
             description:     data.desc,
-            amount:          parseInt(String(entry.amount).replace(/\D/g, ''), 10),
+            amount:          parseAmount(String(entry.amount)),
             linkedExpenseId: expenseId,
             createdDate:     data.date,
           });

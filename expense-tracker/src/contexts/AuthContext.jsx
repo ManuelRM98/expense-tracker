@@ -37,8 +37,14 @@ export function AuthProvider({ children }) {
     if (error) throw error;
   }
 
-  async function signUp(email, password) {
-    const { error } = await supabase.auth.signUp({ email, password });
+  async function signUp(email, password, name) {
+    // Store the display name in Supabase user_metadata so it rides in every JWT;
+    // the backend reads it to seed AppUser.display_name on the first request.
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: name } },
+    });
     if (error) throw error;
   }
 

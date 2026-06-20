@@ -25,7 +25,7 @@ class ExpenseBase(BaseModel):
     date:          date
     desc:          str
     category:      str
-    price:         int   = Field(gt=0, description="Amount in Colombian pesos")
+    price:         float = Field(gt=0, description="Amount in Colombian pesos")
     card_pay:      Literal["Yes", "No"]
     who_paid:      str
     card_type:     str   = ""
@@ -63,7 +63,7 @@ class SavingBase(BaseModel):
     date:      date
     desc:      str
     category:  str
-    price:     int  = Field(gt=0)
+    price:     float = Field(gt=0)
     card_pay:  Literal["Yes", "No"]
     card_type: str  = ""
 
@@ -96,17 +96,17 @@ class IncomeEntryCreate(BaseModel):
     income_type:     Literal["salary", "bonus", "other"]
     description:     str
     currency:        Literal["COP", "USD"] = "COP"
-    original_amount: int | None = None    # only when currency=USD
-    exchange_rate:   int | None = None    # TRM, only when currency=USD
-    amount_cop:      int = Field(gt=0)
+    original_amount: float | None = None    # only when currency=USD
+    exchange_rate:   float | None = None    # TRM, only when currency=USD
+    amount_cop:      float = Field(gt=0)
 
 class IncomeEntryUpdate(BaseModel):
     income_type:     Literal["salary", "bonus", "other"]
     description:     str
     currency:        Literal["COP", "USD"] = "COP"
-    original_amount: int | None = None
-    exchange_rate:   int | None = None
-    amount_cop:      int = Field(gt=0)
+    original_amount: float | None = None
+    exchange_rate:   float | None = None
+    amount_cop:      float = Field(gt=0)
 
 class IncomeEntryOut(BaseModel):
     id:              str
@@ -114,9 +114,9 @@ class IncomeEntryOut(BaseModel):
     income_type:     str
     description:     str
     currency:        str
-    original_amount: int | None
-    exchange_rate:   int | None
-    amount_cop:      int
+    original_amount: float | None
+    exchange_rate:   float | None
+    amount_cop:      float
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -124,7 +124,7 @@ class IncomeEntryOut(BaseModel):
 
 class TemplateBase(BaseModel):
     name:         str
-    amount:       int  = Field(gt=0)
+    amount:       float = Field(gt=0)
     category:     str
     day_of_month: int  = Field(ge=1, le=31)
     who_paid:     str
@@ -218,57 +218,57 @@ class CardOut(BaseModel):
 
 class CategoryBreakdown(BaseModel):
     category: str
-    total:    int
+    total:    float
 
 class MonthlySummary(BaseModel):
     month_key:      str
-    total_expenses: int
-    total_savings:  int
-    income:         int
-    remaining:      int
-    card_total:     int
-    cash_total:     int
+    total_expenses: float
+    total_savings:  float
+    income:         float
+    remaining:      float
+    card_total:     float
+    cash_total:     float
     by_category:    list[CategoryBreakdown]
 
 class MonthRow(BaseModel):
     month_key:      str
-    total_expenses: int
-    total_savings:  int
-    income:         int
-    balance:        int
+    total_expenses: float
+    total_savings:  float
+    income:         float
+    balance:        float
 
 class AnnualSummary(BaseModel):
     year:                 int
-    total_expenses:       int
-    total_savings:        int
-    total_income:         int
+    total_expenses:       float
+    total_savings:        float
+    total_income:         float
     avg_monthly_expenses: float
-    net_balance:          int
+    net_balance:          float
     top_categories:       list[CategoryBreakdown]
     months:               list[MonthRow]
 
 class TrendPoint(BaseModel):
     month_key:      str
-    total_expenses: int
-    total_savings:  int
+    total_expenses: float
+    total_savings:  float
 
 
 # ── Debts ──────────────────────────────────────────────────────────────────────
 
 class DebtPaymentCreate(BaseModel):
-    amount:  int  = Field(gt=0)
+    amount:  float = Field(gt=0)
     date:    date
     note:    str  = ""
 
 class DebtPaymentUpdate(BaseModel):
-    amount:  int  = Field(gt=0)
+    amount:  float = Field(gt=0)
     date:    date
     note:    str  = ""
 
 class DebtPaymentOut(BaseModel):
     id:      str
     debt_id: str
-    amount:  int
+    amount:  float
     date:    date
     note:    str
     model_config = ConfigDict(from_attributes=True)
@@ -277,7 +277,7 @@ class DebtCreate(BaseModel):
     direction:         Literal["they_owe_me", "i_owe_them"]
     person:            str
     description:       str
-    amount:            int  = Field(gt=0)
+    amount:            float = Field(gt=0)
     linked_expense_id: Optional[str] = None
     created_date:      date
     is_settled:        bool = False
@@ -286,7 +286,7 @@ class DebtCreate(BaseModel):
 class DebtUpdate(BaseModel):
     person:       str
     description:  str
-    amount:       int  = Field(gt=0)
+    amount:       float = Field(gt=0)
     is_settled:   bool
     settled_date: Optional[date] = None
 
@@ -295,14 +295,14 @@ class DebtOut(BaseModel):
     direction:         str
     person:            str
     description:       str
-    amount:            int
+    amount:            float
     linked_expense_id: Optional[str]
     is_settled:        bool
     created_date:      date
     settled_date:      Optional[date]
     payments:          list[DebtPaymentOut]
-    total_paid:        int
-    total_remaining:   int
+    total_paid:        float
+    total_remaining:   float
 
 
 # ── Month Budget ───────────────────────────────────────────────────────────────

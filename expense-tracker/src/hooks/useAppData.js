@@ -38,7 +38,7 @@ export function useAppData() {
       categoriesHook.initSavingCategories(savCats);
 
       const salaryConfig = config.find(c => c.key === 'base_salary');
-      const baseSalary = salaryConfig ? parseInt(salaryConfig.value, 10) : 0;
+      const baseSalary = salaryConfig ? parseFloat(salaryConfig.value) : 0;
       incomeHook.initIncomeEntries(entries, baseSalary, currentYear);
 
       expensesHook.initPeople(ppl);

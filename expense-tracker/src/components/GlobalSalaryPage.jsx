@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fmtCOP } from '../utils/format';
+import { fmtCOP, formatAmountInput, parseAmount } from '../utils/format';
 import NavArrowButton from './NavArrowButton';
 
 export default function GlobalSalaryPage({ baseSalary, onSave, onBack }) {
@@ -8,17 +8,16 @@ export default function GlobalSalaryPage({ baseSalary, onSave, onBack }) {
   const [error,  setError]  = useState('');
 
   useEffect(() => {
-    setValue(baseSalary > 0 ? String(baseSalary) : '');
+    setValue(baseSalary > 0 ? formatAmountInput(String(baseSalary)) : '');
   }, [baseSalary]);
 
   function handleChange(e) {
-    // Allow only digits
-    setValue(e.target.value.replace(/\D/g, ''));
+    setValue(formatAmountInput(e.target.value));
     setError('');
   }
 
   async function handleSave() {
-    const amount = parseInt(value, 10);
+    const amount = parseAmount(value);
     if (!amount || amount <= 0) {
       setError('Enter a valid salary amount.');
       return;
@@ -31,7 +30,7 @@ export default function GlobalSalaryPage({ baseSalary, onSave, onBack }) {
     }
   }
 
-  const parsed = parseInt(value, 10) || 0;
+  const parsed = parseAmount(value) || 0;
 
   return (
     <div style={s.page}>
@@ -50,7 +49,7 @@ export default function GlobalSalaryPage({ baseSalary, onSave, onBack }) {
         <input
           style={{ ...s.input, borderColor: error ? 'var(--danger)' : 'var(--border)' }}
           type="text"
-          inputMode="numeric"
+          inputMode="decimal"
           placeholder="e.g. 5000000"
           value={value}
           onChange={handleChange}

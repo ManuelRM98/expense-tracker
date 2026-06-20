@@ -69,7 +69,8 @@ def get_or_create_user(auth_user: AuthUser, db: Session) -> models.AppUser:
         row = models.AppUser(
             id=auth_user.id,
             email=auth_user.email,
-            display_name=None,
+            # Seed from the name captured at signup (Supabase user_metadata), if any.
+            display_name=auth_user.display_name,
         )
         db.add(row)
         db.commit()

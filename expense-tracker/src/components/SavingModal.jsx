@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { todayISO } from '../utils/format';
+import { todayISO, formatAmountInput, parseAmount } from '../utils/format';
 import DatePicker from './DatePicker';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
@@ -74,8 +74,7 @@ export default function SavingModal({
   }
 
   function formatPrice(raw) {
-    const digits = raw.replace(/\D/g, '');
-    return digits ? parseInt(digits, 10).toLocaleString('es-CO') : '';
+    return formatAmountInput(raw);
   }
 
   function validate() {
@@ -94,7 +93,7 @@ export default function SavingModal({
   function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
-    const price = parseInt(form.price.replace(/\D/g, ''), 10);
+    const price = parseAmount(form.price);
     onSave({ ...form, price });
     onClose();
   }
@@ -158,7 +157,7 @@ export default function SavingModal({
             <div style={s.group}>
               <label style={s.label}>Price (COP $)</label>
               <input
-                type="text" inputMode="numeric" placeholder="e.g. 200,000"
+                type="text" inputMode="decimal" placeholder="e.g. 200.000"
                 style={{ ...s.input, ...(errors.price ? s.inputError : {}) }}
                 value={form.price}
                 onChange={e => set('price', formatPrice(e.target.value))}

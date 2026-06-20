@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getAccountMe } from '../services/api';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
 import { DragHandle } from '../utils/mobileModal';
 
@@ -11,7 +12,18 @@ export default function Header({ onAdd, addLabel, btnColor, onHome, isMobile }) 
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [displayName, setDisplayName] = useState('');
   const menuRef   = useRef(null);
+
+  // Load the profile display name so the user menu can greet by name
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getAccountMe()
+      .then(profile => { if (!cancelled) setDisplayName(profile.displayName ?? ''); })
+      .catch(() => { /* fall back to email below */ });
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Close dropdown on outside-click or Esc
   useEffect(() => {
@@ -33,8 +45,10 @@ export default function Header({ onAdd, addLabel, btnColor, onHome, isMobile }) 
     };
   }, [menuOpen, isMobile]);
 
-  // Derive avatar initial from email or display name
-  const initial = user?.email?.[0]?.toUpperCase() ?? '?';
+  // Prefer the saved display name, fall back to the email's local part
+  const name = displayName.trim() || user?.email?.split('@')[0] || '';
+  // Derive avatar initial from the resolved name (or email)
+  const initial = (name || user?.email)?.[0]?.toUpperCase() ?? '?';
 
   async function handleSignOut() {
     setMenuOpen(false);
@@ -106,6 +120,11 @@ export default function Header({ onAdd, addLabel, btnColor, onHome, isMobile }) 
                 {/* Desktop dropdown */}
                 {menuOpen && !isMobile && (
                   <div style={styles.dropdown}>
+                    <div style={styles.menuHeader}>
+                      <span style={styles.menuName}>{name}</span>
+                      {user?.email && <span style={styles.menuEmail}>{user.email}</span>}
+                    </div>
+                    <div style={styles.menuDivider} />
                     <button style={styles.menuItem} onClick={handleAccount}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
                         <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
@@ -138,7 +157,10 @@ export default function Header({ onAdd, addLabel, btnColor, onHome, isMobile }) 
             onClick={e => e.stopPropagation()}
           >
             <DragHandle />
-            <div style={styles.sheetTitle}>{user?.email}</div>
+            <div style={styles.sheetTitle}>
+              <span style={styles.sheetName}>{name}</span>
+              {user?.email && <span style={styles.sheetEmail}>{user.email}</span>}
+            </div>
             <button style={styles.sheetItem} onClick={handleAccount}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
                 <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
@@ -285,13 +307,48 @@ const styles = {
     background: 'var(--border)',
     margin: '2px 0',
   },
+  // Identity header inside the desktop dropdown
+  menuHeader: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    padding: '11px 16px 9px',
+  },
+  menuName: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  menuEmail: {
+    fontSize: 12,
+    color: 'var(--text-tertiary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
   // Bottom-sheet styles
   sheetTitle: {
-    fontSize: 13,
-    color: 'var(--text-tertiary)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
     padding: '0 4px 12px',
     borderBottom: '1px solid var(--border)',
     marginBottom: 8,
+  },
+  sheetName: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  sheetEmail: {
+    fontSize: 13,
+    color: 'var(--text-tertiary)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',

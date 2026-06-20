@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { todayISO, MONTH_NAMES } from '../utils/format';
+import { todayISO, MONTH_NAMES, formatAmountInput, parseAmount } from '../utils/format';
 import DatePicker from './DatePicker';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
@@ -94,8 +94,7 @@ export default function ExpenseModal({
   }
 
   function formatPrice(raw) {
-    const digits = raw.replace(/\D/g, '');
-    return digits ? parseInt(digits, 10).toLocaleString('es-CO') : '';
+    return formatAmountInput(raw);
   }
 
   function validate() {
@@ -115,7 +114,7 @@ export default function ExpenseModal({
   function handleSubmit(e) {
     e.preventDefault();
     if (!validate()) return;
-    const price = parseInt(form.price.replace(/\D/g, ''), 10);
+    const price = parseAmount(form.price);
 
     let billingMonth = null;
     if (form.cardPay === 'Yes' && form.cardType) {
@@ -522,13 +521,12 @@ export default function ExpenseModal({
                     </select>
                     <input
                       type="text"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       placeholder="Amount"
                       style={{ ...s.debtInput, flex: '1 1 90px' }}
                       value={entry.amount}
                       onChange={e => {
-                        const digits = e.target.value.replace(/\D/g, '');
-                        const val = digits ? parseInt(digits, 10).toLocaleString('es-CO') : '';
+                        const val = formatAmountInput(e.target.value);
                         setDebtEntries(prev => prev.map((d, i) => i === idx ? { ...d, amount: val } : d));
                       }}
                     />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { todayISO, fmtCOP } from '../utils/format';
+import { todayISO, fmtCOP, formatAmountInput, parseAmount } from '../utils/format';
 import DatePicker from './DatePicker';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
@@ -28,8 +28,8 @@ export default function DebtPaymentModal({ open, onClose, onSave, debt, editing 
     const e = {};
     if (!form.amount) e.amount = 'Amount is required.';
     if (!form.date)   e.date   = 'Date is required.';
-    const parsed = parseInt(form.amount.replace(/\D/g, ''), 10);
-    if (parsed <= 0)  e.amount = 'Amount must be greater than 0.';
+    const parsed = parseAmount(form.amount);
+    if (!(parsed > 0))  e.amount = 'Amount must be greater than 0.';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -38,7 +38,7 @@ export default function DebtPaymentModal({ open, onClose, onSave, debt, editing 
     ev.preventDefault();
     if (!validate()) return;
     onSave({
-      amount: parseInt(form.amount.replace(/\D/g, ''), 10),
+      amount: parseAmount(form.amount),
       date:   form.date,
       note:   form.note.trim(),
     });
@@ -77,14 +77,11 @@ export default function DebtPaymentModal({ open, onClose, onSave, debt, editing 
               <input
                 style={{ ...s.input, ...(errors.amount ? s.inputErr : {}) }}
                 type="text"
-                inputMode="numeric"
-                placeholder="e.g. 20,000"
+                inputMode="decimal"
+                placeholder="e.g. 20.000"
                 value={form.amount}
                 autoFocus
-                onChange={e => {
-                  const digits = e.target.value.replace(/\D/g, '');
-                  set('amount', digits ? parseInt(digits, 10).toLocaleString('es-CO') : '');
-                }}
+                onChange={e => set('amount', formatAmountInput(e.target.value))}
               />
               {errors.amount && <span style={s.errMsg}>{errors.amount}</span>}
             </div>

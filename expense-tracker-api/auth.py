@@ -47,6 +47,9 @@ class AuthUser:
     """Authenticated caller.  .id is the Supabase `sub` claim (UUID str)."""
     id: str
     email: str
+    # display_name comes from Supabase user_metadata (set at signup). Used only to
+    # seed AppUser.display_name on first request; None when the user never set one.
+    display_name: str | None = None
 
 
 # ── FastAPI dependency ─────────────────────────────────────────────────────────
@@ -105,4 +108,12 @@ def get_current_user(
             detail="Token missing 'sub' claim",
         )
 
-    return AuthUser(id=sub, email=email)
+    # Supabase carries signup user_metadata in the token; pull display_name if set.
+    user_metadata = payload.get("user_metadata") or {}
+    display_name = user_metadata.get("display_name")
+    if isinstance(display_name, str):
+        display_name = display_name.strip() or None
+    else:
+        display_name = None
+
+    return AuthUser(id=sub, email=email, display_name=display_name)

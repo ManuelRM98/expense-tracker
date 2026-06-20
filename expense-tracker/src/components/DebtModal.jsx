@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { todayISO } from '../utils/format';
+import { todayISO, formatAmountInput, parseAmount } from '../utils/format';
 import DatePicker from './DatePicker';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
@@ -52,7 +52,7 @@ export default function DebtModal({ open, onClose, onSave, editing }) {
   function handleSubmit(ev) {
     ev.preventDefault();
     if (!validate()) return;
-    const amount = parseInt(form.amount.replace(/\D/g, ''), 10);
+    const amount = parseAmount(form.amount);
     onSave({
       direction:   form.direction,
       person:      form.person.trim(),
@@ -145,13 +145,10 @@ export default function DebtModal({ open, onClose, onSave, editing }) {
               <input
                 style={{ ...s.input, ...(errors.amount ? s.inputErr : {}) }}
                 type="text"
-                inputMode="numeric"
-                placeholder="e.g. 40,000"
+                inputMode="decimal"
+                placeholder="e.g. 40.000"
                 value={form.amount}
-                onChange={e => {
-                  const digits = e.target.value.replace(/\D/g, '');
-                  set('amount', digits ? parseInt(digits, 10).toLocaleString('es-CO') : '');
-                }}
+                onChange={e => set('amount', formatAmountInput(e.target.value))}
               />
               {errors.amount && <span style={s.errMsg}>{errors.amount}</span>}
             </div>

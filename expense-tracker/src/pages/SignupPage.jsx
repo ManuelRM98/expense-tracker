@@ -6,6 +6,7 @@ export default function SignupPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  const [name,      setName]      = useState('');
   const [email,     setEmail]     = useState('');
   const [password,  setPassword]  = useState('');
   const [password2, setPassword2] = useState('');
@@ -17,6 +18,7 @@ export default function SignupPage() {
 
   function validate() {
     const e = {};
+    if (!name.trim())                        e.name      = 'Name is required';
     if (!email.trim())                       e.email     = 'Email is required';
     if (password.length < 6)                 e.password  = 'At least 6 characters';
     if (password !== password2)              e.password2 = 'Passwords do not match';
@@ -30,7 +32,7 @@ export default function SignupPage() {
     setApiError('');
     setLoading(true);
     try {
-      await signUp(email.trim(), password);
+      await signUp(email.trim(), password, name.trim());
       // If email confirmation is required, supabase-js session will be null;
       // show a confirmation message. Otherwise navigate home.
       setConfirmed(true);
@@ -70,6 +72,21 @@ export default function SignupPage() {
         {apiError && <p style={s.apiError}>{apiError}</p>}
 
         <form onSubmit={handleSubmit} noValidate>
+          <div style={s.field}>
+            <label style={s.label} htmlFor="signup-name">Name</label>
+            <input
+              id="signup-name"
+              type="text"
+              autoComplete="name"
+              value={name}
+              onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: '' })); }}
+              style={{ ...s.input, ...(errors.name ? s.inputError : {}) }}
+              placeholder="Your name"
+              maxLength={80}
+            />
+            {errors.name && <span style={s.errorMsg}>{errors.name}</span>}
+          </div>
+
           <div style={s.field}>
             <label style={s.label} htmlFor="signup-email">Email</label>
             <input
