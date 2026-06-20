@@ -573,3 +573,14 @@ export async function updateAccountMe(displayName) {
   const data = await request('PUT', '/account/me', { display_name: displayName });
   return toAccount(data);
 }
+
+/**
+ * DELETE /account/me — permanently deletes all user data and the Supabase auth identity.
+ * Returns the response body (with `auth_deleted` field) on 200, or null on 204.
+ * 204: both local data and auth identity deleted successfully.
+ * 200: local data deleted but auth identity removal failed (auth_deleted: false).
+ */
+export async function deleteAccountMe() {
+  // request() already returns null for 204 and parsed JSON for 200.
+  return request('DELETE', '/account/me');
+}

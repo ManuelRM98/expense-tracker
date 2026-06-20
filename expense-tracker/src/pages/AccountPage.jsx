@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../services/supabase';
-import { getAccountMe, updateAccountMe } from '../services/api';
+import { getAccountMe, updateAccountMe, deleteAccountMe } from '../services/api';
 
 export default function AccountPage({ showToast }) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const [displayName,  setDisplayName]  = useState('');
   const [savedName,    setSavedName]    = useState('');
@@ -15,6 +15,11 @@ export default function AccountPage({ showToast }) {
   const [resetLoading, setResetLoading] = useState(false);
 
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Danger zone state
+  const [showDangerZone, setShowDangerZone] = useState(false);
+  const [confirmInput,   setConfirmInput]   = useState('');
+  const [deleting,       setDeleting]       = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +73,27 @@ export default function AccountPage({ showToast }) {
       showToast?.(`Error: ${err.message ?? 'Could not send reset email.'}`);
     } finally {
       setResetLoading(false);
+    }
+  }
+
+  const userEmail = user?.email ?? '';
+  const confirmMatches = confirmInput.trim() === userEmail || confirmInput.trim() === 'DELETE';
+
+  async function handleDeleteAccount() {
+    if (!confirmMatches) return;
+    setDeleting(true);
+    try {
+      const result = await deleteAccountMe();
+      // result is null on 204 (full success) or { detail, auth_deleted } on 200
+      if (result && result.auth_deleted === false) {
+        showToast?.('Your data has been deleted. Note: the login record could not be removed automatically — contact support if needed.');
+      } else {
+        showToast?.('Account deleted successfully.');
+      }
+      await signOut();
+    } catch (err) {
+      showToast?.(`Error: ${err.message ?? 'Could not delete account.'}`);
+      setDeleting(false);
     }
   }
 
@@ -129,6 +155,62 @@ export default function AccountPage({ showToast }) {
             >
               {resetLoading ? 'Sending…' : 'Send password-reset email'}
             </button>
+          )}
+        </section>
+
+        {/* ── Danger zone ── */}
+        <section style={s.dangerSection}>
+          <p style={s.sectionLabel}>Danger zone</p>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', margin: 0 }}>
+            Permanently delete your account and all associated data. This action cannot be undone.
+          </p>
+
+          {!showDangerZone ? (
+            <button
+              type="button"
+              style={s.btnDanger}
+              onClick={() => { setShowDangerZone(true); setConfirmInput(''); }}
+              disabled={deleting}
+            >
+              Delete account
+            </button>
+          ) : (
+            <div style={s.dangerConfirm}>
+              <p style={s.dangerPrompt}>
+                To confirm, type your email address <strong style={{ color: 'var(--text-primary)' }}>{userEmail}</strong> below:
+              </p>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={e => setConfirmInput(e.target.value)}
+                style={{ ...s.input, borderColor: confirmInput && !confirmMatches ? 'var(--danger)' : 'var(--border)' }}
+                placeholder={userEmail}
+                autoComplete="off"
+                disabled={deleting}
+              />
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  style={s.btnSecondary}
+                  onClick={() => { setShowDangerZone(false); setConfirmInput(''); }}
+                  disabled={deleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    ...s.btnDanger,
+                    opacity: confirmMatches && !deleting ? 1 : 0.4,
+                    cursor: confirmMatches && !deleting ? 'pointer' : 'not-allowed',
+                  }}
+                  onClick={handleDeleteAccount}
+                  disabled={!confirmMatches || deleting}
+                >
+                  {deleting ? 'Deleting…' : 'Permanently delete account'}
+                </button>
+              </div>
+            </div>
           )}
         </section>
       </div>
@@ -223,5 +305,40 @@ const s = {
     fontFamily: 'inherit',
     minHeight: 44,
     transition: 'background 0.15s',
+  },
+  dangerSection: {
+    background: 'var(--surface)',
+    borderRadius: 'var(--radius-md)',
+    padding: '18px 20px',
+    boxShadow: 'var(--shadow-sm)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+    border: '1.5px solid rgba(255,59,48,0.25)',
+  },
+  dangerConfirm: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  dangerPrompt: {
+    fontSize: 14,
+    color: 'var(--text-secondary)',
+    margin: 0,
+    lineHeight: 1.5,
+  },
+  btnDanger: {
+    background: 'var(--danger)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 'var(--radius-sm)',
+    padding: '11px 20px',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    minHeight: 44,
+    marginTop: 2,
+    transition: 'opacity 0.15s',
   },
 };
