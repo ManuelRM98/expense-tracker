@@ -5,18 +5,36 @@ const BASE_URL =
   import.meta.env.VITE_API_URL ??
   `${window.location.protocol}//${window.location.hostname}:8000`;
 
-/** Part C.4: send X-API-Key header on every request if VITE_API_KEY is set */
-const API_KEY = import.meta.env.VITE_API_KEY || null;
-
 // ── HTTP helper ────────────────────────────────────────────────────────────────
+
+// Lazily import supabase to avoid a circular dependency at module load time.
+// The auth context has already called supabase.auth.getSession() before any
+// data call reaches here, so the session is always available.
+async function getAccessToken() {
+  const { supabase } = await import('./supabase.js');
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
 async function request(method, path, body = null) {
   const headers = { 'Content-Type': 'application/json' };
-  // Part C.4: include X-API-Key if configured via VITE_API_KEY env var
-  if (API_KEY) headers['X-API-Key'] = API_KEY;
+
+  // AUTH-01: Bearer token replaces the old X-API-Key
+  const token = await getAccessToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const opts = { method, headers };
   if (body !== null) opts.body = JSON.stringify(body);
   const res = await fetch(`${BASE_URL}${path}`, opts);
+
+  // AUTH-01: 401 means the session is gone — sign out and redirect to /login
+  if (res.status === 401) {
+    const { supabase } = await import('./supabase.js');
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+    throw new Error('Session expired. Please sign in again.');
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail ?? `API error ${res.status}`);
@@ -528,4 +546,30 @@ export async function updateDebtPayment(debtId, paymentId, data) {
 export async function deleteDebtPayment(debtId, paymentId) {
   const res = await request('DELETE', `/debts/${debtId}/payments/${paymentId}`);
   return toDebt(res);
+}
+
+// ── Account (AUTH-01) ──────────────────────────────────────────────────────────
+
+function toAccount(d) {
+  return {
+    id:          d.id,
+    email:       d.email,
+    displayName: d.display_name ?? null,
+    createdAt:   d.created_at,
+  };
+}
+
+/**
+ * GET /account/me — also triggers first-login provisioning (seed categories/cards).
+ * Call once after login before loading any dashboard data.
+ */
+export async function getAccountMe() {
+  const data = await request('GET', '/account/me');
+  return toAccount(data);
+}
+
+/** PUT /account/me { display_name } → updated profile */
+export async function updateAccountMe(displayName) {
+  const data = await request('PUT', '/account/me', { display_name: displayName });
+  return toAccount(data);
 }

@@ -8,6 +8,7 @@ from sqlalchemy.types import String
 
 import models
 import schemas
+from auth import AuthUser, get_current_user
 from database import get_db
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
@@ -36,23 +37,22 @@ def _billing_month_filter(model_cls, month_key: str):
     )
 
 
-def _month_summary(month_key: str, db: Session) -> schemas.MonthlySummary:
+def _month_summary(month_key: str, db: Session, user_id: str) -> schemas.MonthlySummary:
     """
-    Replicates the monthly calculations in App.jsx:
-      remaining  = income - totalExpenses - totalSavings
-      card_total = sum of expenses where card_pay == "Yes"
-      cash_total = totalExpenses - card_total
-
-    BUG-03: Uses billing_month-aware filter for expenses.
+    Replicates the monthly calculations in App.jsx.
+    AUTH-01: all queries scoped to user_id — analytics NEVER aggregate across users.
     """
     expenses = db.query(models.Expense).filter(
-        _billing_month_filter(models.Expense, month_key)
+        models.Expense.user_id == user_id,
+        _billing_month_filter(models.Expense, month_key),
     ).all()
     savings = db.query(models.Saving).filter(
-        _date_ym(models.Saving.date) == month_key
+        models.Saving.user_id == user_id,
+        _date_ym(models.Saving.date) == month_key,
     ).all()
     income_rows = db.query(models.IncomeEntry).filter(
-        models.IncomeEntry.month_key == month_key
+        models.IncomeEntry.user_id == user_id,
+        models.IncomeEntry.month_key == month_key,
     ).all()
 
     income         = sum(r.amount_cop for r in income_rows)
@@ -85,32 +85,39 @@ def _month_summary(month_key: str, db: Session) -> schemas.MonthlySummary:
 def monthly_summary(
     month_key: str = Path(pattern=MONTH_KEY_PATTERN),  # SEC-04
     db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
 ):
-    """Full summary for a single month. Mirrors App.jsx summary calculations.
-    BUG-03: Expenses are attributed to their billing_month when set."""
-    return _month_summary(month_key, db)
+    """Full summary for a single month.
+    AUTH-01: scoped to current user — never aggregates across users."""
+    return _month_summary(month_key, db, current_user.id)
 
 
 @router.get("/annual/{year}", response_model=schemas.AnnualSummary)
-def annual_summary(year: int, db: Session = Depends(get_db)):
+def annual_summary(
+    year: int,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
     """
     Full year summary with per-month breakdown and top categories.
-    Mirrors AnnualDashboard.jsx calculations.
+    AUTH-01: scoped to current user.
     BUG-03: Expenses are attributed to their billing_month when set.
     """
-    # BUG-03: fetch all expenses that "belong" to this year via billing_month OR date
-    # We fetch all and group in Python to correctly attribute each expense.
+    # billing_month is a String column — LIKE is PG-safe on String columns.
     expenses = db.query(models.Expense).filter(
+        models.Expense.user_id == current_user.id,
         or_(
             models.Expense.billing_month.like(f"{year}-%"),
             (models.Expense.billing_month == None) & _date_ym(models.Expense.date).like(f"{year}-%"),
-        )
+        ),
     ).all()
     savings = db.query(models.Saving).filter(
-        _date_ym(models.Saving.date).like(f"{year}-%")
+        models.Saving.user_id == current_user.id,
+        _date_ym(models.Saving.date).like(f"{year}-%"),
     ).all()
     income_rows = db.query(models.IncomeEntry).filter(
-        models.IncomeEntry.month_key.like(f"{year}-%")
+        models.IncomeEntry.user_id == current_user.id,
+        models.IncomeEntry.month_key.like(f"{year}-%"),
     ).all()
 
     total_expenses = sum(e.price for e in expenses)
@@ -126,7 +133,6 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
     for s in savings:
         sav_by_month[str(s.date)[:7]] += s.price
 
-    # Sum per month — a month can hold multiple income entries
     income_map: dict[str, int] = defaultdict(int)
     for r in income_rows:
         income_map[r.month_key] += r.amount_cop
@@ -144,7 +150,6 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
         for m in active_months
     ]
 
-    # Top categories across the full year
     cat_totals: dict[str, int] = defaultdict(int)
     for e in expenses:
         cat_totals[e.category] += e.price
@@ -152,7 +157,7 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
     top_categories = sorted(
         [schemas.CategoryBreakdown(category=k, total=v) for k, v in cat_totals.items()],
         key=lambda x: -x.total,
-    )[:7]  # Top 7 — mirrors AnnualDashboard.jsx
+    )[:7]
 
     return schemas.AnnualSummary(
         year=year,
@@ -167,18 +172,20 @@ def annual_summary(year: int, db: Session = Depends(get_db)):
 
 
 @router.get("/trend", response_model=list[schemas.TrendPoint])
-def expense_trend(months: int = 12, db: Session = Depends(get_db)):
+def expense_trend(
+    months: int = 12,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
     """
     Returns total expenses and savings for the last N months.
-    Mirrors MonthlyTrendChart — defaults to last 12 months.
-
-    PERF-02: Replaced 2×N per-month query loop with two bulk aggregation queries.
-    BUG-03: Expenses are attributed to their billing_month when set.
+    AUTH-01: scoped to current user.
+    PERF-02: Two bulk aggregation queries instead of 2×N per-month loop.
+    BUG-03: Expenses attributed to billing_month when set.
     PostgreSQL-compatible: uses func.substr(func.cast(...)) instead of func.strftime.
     """
     today = date.today()
 
-    # Build the list of month_key strings for the requested window
     window: list[str] = []
     for i in range(months - 1, -1, -1):
         m = today.month - i
@@ -191,9 +198,6 @@ def expense_trend(months: int = 12, db: Session = Depends(get_db)):
     start_month = window[0]
     end_month   = window[-1]
 
-    # ── Expenses: single aggregation grouped by effective month ──────────────
-    # effective_month = billing_month when set, else date[:7].
-    # PG-compatible month extraction: substr(cast(date, String), 1, 7)
     date_as_str = func.substr(func.cast(models.Expense.date, String), 1, 7)
     effective_month_expr = func.coalesce(models.Expense.billing_month, date_as_str)
 
@@ -202,20 +206,25 @@ def expense_trend(months: int = 12, db: Session = Depends(get_db)):
             effective_month_expr.label("month"),
             func.sum(models.Expense.price).label("total"),
         )
-        .filter(effective_month_expr.between(start_month, end_month))
+        .filter(
+            models.Expense.user_id == current_user.id,
+            effective_month_expr.between(start_month, end_month),
+        )
         .group_by("month")
         .all()
     )
     exp_map: dict[str, int] = {r.month: int(r.total) for r in exp_rows}
 
-    # ── Savings: single aggregation grouped by date month ────────────────────
     sav_date_as_str = func.substr(func.cast(models.Saving.date, String), 1, 7)
     sav_rows = (
         db.query(
             sav_date_as_str.label("month"),
             func.sum(models.Saving.price).label("total"),
         )
-        .filter(sav_date_as_str.between(start_month, end_month))
+        .filter(
+            models.Saving.user_id == current_user.id,
+            sav_date_as_str.between(start_month, end_month),
+        )
         .group_by("month")
         .all()
     )

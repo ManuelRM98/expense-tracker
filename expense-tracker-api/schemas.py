@@ -1,7 +1,22 @@
 import re
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Literal, Optional
-from datetime import date
+from datetime import date, datetime
+
+
+# ── AUTH-01: Account / AppUser ──────────────────────────────────────────────────
+
+class AppUserOut(BaseModel):
+    """Profile returned from GET /account/me."""
+    id:           str
+    email:        str
+    display_name: str | None
+    created_at:   datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class AppUserUpdate(BaseModel):
+    """Payload for PUT /account/me — only display_name is editable here."""
+    display_name: str
 
 
 # ── Expenses ───────────────────────────────────────────────────────────────────

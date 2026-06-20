@@ -10,6 +10,7 @@ import Sidebar from './components/Sidebar';
 import BottomTabBar from './components/BottomTabBar';
 import MonthPickerSheet from './components/MonthPickerSheet';
 import ConfirmDialog from './components/ConfirmDialog';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Route-level page components (DEBT-02)
 import HomeView            from './pages/HomeView';
@@ -21,6 +22,7 @@ import CategoriesView      from './pages/CategoriesView';
 import BudgetAllocationView from './pages/BudgetAllocationView';
 import GlobalSalaryView    from './pages/GlobalSalaryView';
 import FixedExpensesView   from './pages/FixedExpensesView';
+import AccountPage         from './pages/AccountPage';
 
 const MONTH_URL_NAMES = [
   'january','february','march','april','may','june',
@@ -47,6 +49,7 @@ function parsePath(path) {
     : parts[0] === 'settings' && parts[1] === 'categories'              ? 'categories'
     : parts[0] === 'settings'                                            ? 'settings'
     : parts[0] === 'debts'                                               ? 'debts'
+    : parts[0] === 'account'                                             ? 'account'
     : 'home';
   return { view, isMonthPath: false, parts };
 }
@@ -194,7 +197,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <ProtectedRoute>
       <Header
         onAdd={() => monthViewAddRef.current?.()}
         addLabel={headerAction.label}
@@ -383,6 +386,11 @@ export default function App() {
                 onUpdateSavingCategoryColor={handleUpdateSavingCategoryColor}
               />
             } />
+
+            {/* Account page (AUTH-01) */}
+            <Route path="/account" element={
+              <AccountPage showToast={showToast} />
+            } />
           </Routes>
         </div>
       </div>
@@ -424,7 +432,7 @@ export default function App() {
         onConfirm={confirmDialog.onConfirm}
         onCancel={closeConfirm}
       />
-    </>
+    </ProtectedRoute>
   );
 }
 

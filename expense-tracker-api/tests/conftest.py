@@ -6,20 +6,11 @@ from pathlib import Path
 # regardless of where pytest is invoked from.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-# DATABASE_URL must be set before importing database/main: the engine URL is read
-# at import time, and main.py runs create_all/migrations/seeding on import.
-#
-# Tests run against a throwaway PostgreSQL (the db-test compose service), NOT SQLite,
-# so the suite exercises the SAME dialect as production Supabase. SQLite is dynamically
-# typed and would silently accept PG-invalid SQL — e.g. LIKE on a DATE column — letting
-# it pass CI and then 500 in production. The DB host defaults to localhost:5440 for
-# host-venv runs; docker-compose sets TEST_DATABASE_URL=...@db-test:5432 for in-container
-# runs. Override TEST_DATABASE_URL to point elsewhere.
+# DATABASE_URL must be set before importing database/main.
 _DEFAULT_TEST_DB = "postgresql+psycopg://postgres:postgres@localhost:5440/expense_test"
 _TEST_DB_URL = os.environ.get("TEST_DATABASE_URL", _DEFAULT_TEST_DB)
 
-# Safety: every test does drop_all/create_all. Running that against the real Supabase
-# database would wipe production. Refuse anything that isn't an obviously-disposable PG.
+# Safety: refuse to run destructive suite against Supabase production.
 assert "supabase" not in _TEST_DB_URL.lower(), (
     "TEST_DATABASE_URL points at Supabase — refusing to run the destructive test suite "
     "against production. Use the throwaway db-test service (host port 5440)."
@@ -29,27 +20,72 @@ assert _TEST_DB_URL.startswith(("postgresql://", "postgresql+psycopg://")), (
 )
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 
-# SEC-05: disable rate limiting in tests so the suite never hits throttle limits
+# SEC-05: disable rate limiting in tests
 os.environ["DISABLE_RATE_LIMIT"] = "1"
 
-# SEC-02: force API-key auth OFF in tests. database.py calls load_dotenv(), which
-# would otherwise pull API_KEY from the real .env (set for the Supabase migration)
-# and make every test 401. Setting it here first wins — load_dotenv won't override
-# an existing env var. The dedicated key tests patch main._API_KEY directly.
+# AUTH-01: disable legacy API-key env var
 os.environ["API_KEY"] = ""
+
+# AUTH-01: point JWKS at a non-existent URL — tests override get_current_user
+# entirely via dependency_overrides so the JWKS endpoint is never called.
+os.environ["SUPABASE_JWKS_URL"] = "http://localhost:0/.well-known/jwks.json"
 
 import pytest
 from fastapi.testclient import TestClient
 
-from database import Base, engine
-from main import app, seed_defaults
+from auth import AuthUser, get_current_user
+from database import Base, engine, SessionLocal
+from main import app
+import models as m
+
+# ── Fixed test user UUIDs ──────────────────────────────────────────────────────
+TEST_USER_A_ID    = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+TEST_USER_A_EMAIL = "user_a@test.local"
+
+TEST_USER_B_ID    = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+TEST_USER_B_EMAIL = "user_b@test.local"
+
+USER_A = AuthUser(id=TEST_USER_A_ID, email=TEST_USER_A_EMAIL)
+USER_B = AuthUser(id=TEST_USER_B_ID, email=TEST_USER_B_EMAIL)
+
+
+def set_auth_user(user: AuthUser):
+    """Switch the active test user by updating dependency_overrides in place."""
+    app.dependency_overrides[get_current_user] = lambda: user
+
+
+def _seed_db():
+    """Create a fresh schema and seed both test users + default categories."""
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db = SessionLocal()
+    try:
+        db.add(m.AppUser(id=TEST_USER_A_ID, email=TEST_USER_A_EMAIL, display_name="User A"))
+        db.add(m.AppUser(id=TEST_USER_B_ID, email=TEST_USER_B_EMAIL, display_name="User B"))
+
+        for uid in [TEST_USER_A_ID, TEST_USER_B_ID]:
+            for cat in ["Food", "Transport", "Entertainment", "Health", "Shopping", "Services"]:
+                db.add(m.ExpenseCategory(user_id=uid, name=cat))
+            db.add(m.SavingCategory(user_id=uid, name="Investment"))
+            db.add(m.CardType(user_id=uid, name="Davivienda"))
+
+        db.commit()
+    finally:
+        db.close()
 
 
 @pytest.fixture()
 def client():
-    """Fresh schema + default seeds per test — no state leaks between tests."""
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-    seed_defaults()
+    """
+    Fresh schema per test, authenticated as USER_A.
+    Use set_auth_user(USER_B) mid-test to switch identity.
+    app.dependency_overrides is cleared on teardown.
+    """
+    _seed_db()
+    set_auth_user(USER_A)
+
     with TestClient(app) as c:
         yield c
+
+    app.dependency_overrides.clear()

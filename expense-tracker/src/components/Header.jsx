@@ -1,45 +1,161 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
+import { DragHandle } from '../utils/mobileModal';
+
 /**
  * isMobile — when true the action button collapses to icon-only to fit 375px
  */
 export default function Header({ onAdd, addLabel, btnColor, onHome, isMobile }) {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef   = useRef(null);
+
+  // Close dropdown on outside-click or Esc
+  useEffect(() => {
+    if (!menuOpen || isMobile) return; // bottom-sheet uses overlay click
+
+    function handleClick(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    }
+    function handleKey(e) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown',   handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown',   handleKey);
+    };
+  }, [menuOpen, isMobile]);
+
+  // Derive avatar initial from email or display name
+  const initial = user?.email?.[0]?.toUpperCase() ?? '?';
+
+  async function handleSignOut() {
+    setMenuOpen(false);
+    await signOut();
+  }
+
+  function handleAccount() {
+    setMenuOpen(false);
+    navigate('/account');
+  }
+
   return (
-    <header
-      style={{
-        ...styles.header,
-        // Mobile-only tighter side padding; desktop keeps the original 24px
-        padding: isMobile ? '0 16px' : '0 24px',
-        // Respect notch / status bar on iOS (0 on desktop)
-        paddingTop: 'env(safe-area-inset-top)',
-      }}
-    >
-      <div style={styles.inner}>
-        <div style={styles.titleRow}>
-          <div style={styles.title} onClick={onHome} role="button" tabIndex={0} onKeyDown={e => e.key === 'Enter' && onHome?.()} title="Go to Home">
-            Expense<span style={{ color: 'var(--accent)' }}>Page</span>
+    <>
+      <header
+        style={{
+          ...styles.header,
+          padding: isMobile ? '0 16px' : '0 24px',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
+      >
+        <div style={styles.inner}>
+          <div style={styles.titleRow}>
+            <div
+              style={styles.title}
+              onClick={onHome}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => e.key === 'Enter' && onHome?.()}
+              title="Go to Home"
+            >
+              Expense<span style={{ color: 'var(--accent)' }}>Page</span>
+            </div>
+          </div>
+
+          <div style={styles.rightGroup}>
+            {/* Add button */}
+            {isMobile ? (
+              <button
+                style={{ ...styles.btnIcon, background: btnColor ?? 'var(--accent)' }}
+                onClick={onAdd}
+                title={addLabel ?? 'Add Expense'}
+                aria-label={addLabel ?? 'Add Expense'}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+              </button>
+            ) : (
+              <button style={{ ...styles.btn, background: btnColor ?? 'var(--accent)' }} onClick={onAdd}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                </svg>
+                {addLabel ?? 'Add Expense'}
+              </button>
+            )}
+
+            {/* Avatar button — only shown when logged in */}
+            {user && (
+              <div style={{ position: 'relative' }} ref={menuRef}>
+                <button
+                  style={styles.avatar}
+                  onClick={() => setMenuOpen(o => !o)}
+                  aria-label="User menu"
+                  aria-expanded={menuOpen}
+                >
+                  {initial}
+                </button>
+
+                {/* Desktop dropdown */}
+                {menuOpen && !isMobile && (
+                  <div style={styles.dropdown}>
+                    <button style={styles.menuItem} onClick={handleAccount}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                      </svg>
+                      Account
+                    </button>
+                    <div style={styles.menuDivider} />
+                    <button style={{ ...styles.menuItem, color: 'var(--danger)' }} onClick={handleSignOut}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                        <path d="M17 7l-1.4 1.4 2.6 2.6H9v2h9.2l-2.6 2.6L17 17l5-5-5-5zm-12 1H3v12h2V8z"/>
+                      </svg>
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-        {/* On mobile: icon-only button so title + button fit at 375px */}
-        {isMobile ? (
-          <button
-            style={{ ...styles.btnIcon, background: btnColor ?? 'var(--accent)' }}
-            onClick={onAdd}
-            title={addLabel ?? 'Add Expense'}
-            aria-label={addLabel ?? 'Add Expense'}
+      </header>
+
+      {/* Mobile bottom-sheet user menu */}
+      {menuOpen && isMobile && (
+        <div
+          style={getModalOverlayStyle(true)}
+          onClick={() => setMenuOpen(false)}
+        >
+          <div
+            style={getModalStyle(true, { maxWidth: '100%' })}
+            onClick={e => e.stopPropagation()}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-            </svg>
-          </button>
-        ) : (
-          <button style={{ ...styles.btn, background: btnColor ?? 'var(--accent)' }} onClick={onAdd}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-            </svg>
-            {addLabel ?? 'Add Expense'}
-          </button>
-        )}
-      </div>
-    </header>
+            <DragHandle />
+            <div style={styles.sheetTitle}>{user?.email}</div>
+            <button style={styles.sheetItem} onClick={handleAccount}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+              </svg>
+              Account
+            </button>
+            <button style={{ ...styles.sheetItem, color: 'var(--danger)' }} onClick={handleSignOut}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                <path d="M17 7l-1.4 1.4 2.6 2.6H9v2h9.2l-2.6 2.6L17 17l5-5-5-5zm-12 1H3v12h2V8z"/>
+              </svg>
+              Log out
+            </button>
+            <div style={{ height: 16 }} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -77,18 +193,10 @@ const styles = {
     cursor: 'pointer',
     userSelect: 'none',
   },
-  themeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: '50%',
-    border: '1.5px solid var(--border)',
-    background: 'var(--surface)',
-    cursor: 'pointer',
+  rightGroup: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    color: 'var(--text-secondary)',
-    transition: 'background 0.15s, color 0.15s',
+    gap: 10,
   },
   btn: {
     display: 'flex',
@@ -104,7 +212,6 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit',
   },
-  // Icon-only variant for mobile header — meets ≥ 44px touch target
   btnIcon: {
     width: 44,
     height: 44,
@@ -118,6 +225,92 @@ const styles = {
     cursor: 'pointer',
     fontFamily: 'inherit',
     flexShrink: 0,
+    WebkitTapHighlightColor: 'transparent',
+  },
+  // Circular avatar button — 34px visual + min 44px touch target via padding
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: '50%',
+    background: 'var(--accent)',
+    color: '#fff',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 700,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    WebkitTapHighlightColor: 'transparent',
+    padding: 0,
+    outline: 'none',
+    // Browsers clip box-model hit areas at the element boundary, so we rely on
+    // the 64px header height to give ample vertical clearance. The 34px circle
+    // sits centered in a 64px tall strip — effective touch band is ~64px tall.
+  },
+  dropdown: {
+    position: 'absolute',
+    top: 'calc(100% + 8px)',
+    right: 0,
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
+    boxShadow: 'var(--shadow-md)',
+    minWidth: 160,
+    zIndex: 300,
+    overflow: 'hidden',
+    animation: 'scaleIn .16s cubic-bezier(.34,1.56,.64,1)',
+    transformOrigin: 'top right',
+  },
+  menuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    width: '100%',
+    padding: '11px 16px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 14,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+    textAlign: 'left',
+    transition: 'background 0.1s',
+  },
+  menuDivider: {
+    height: 1,
+    background: 'var(--border)',
+    margin: '2px 0',
+  },
+  // Bottom-sheet styles
+  sheetTitle: {
+    fontSize: 13,
+    color: 'var(--text-tertiary)',
+    padding: '0 4px 12px',
+    borderBottom: '1px solid var(--border)',
+    marginBottom: 8,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  sheetItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    width: '100%',
+    padding: '14px 4px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    fontSize: 16,
+    fontWeight: 500,
+    color: 'var(--text-primary)',
+    textAlign: 'left',
+    minHeight: 52,
     WebkitTapHighlightColor: 'transparent',
   },
 };

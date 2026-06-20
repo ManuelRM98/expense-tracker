@@ -7,13 +7,18 @@ from datetime import date
 
 import models
 import schemas
+from auth import AuthUser, get_current_user
 from database import get_db
 
 router = APIRouter(prefix="/debts", tags=["Debts"])
 
 
-def _get_debt_or_404(db: Session, debt_id: str) -> models.Debt:
-    debt = db.query(models.Debt).filter(models.Debt.id == debt_id).first()
+def _get_debt_or_404(db: Session, debt_id: str, user_id: str) -> models.Debt:
+    """Return debt if it exists and is owned by user_id; raise 404 otherwise."""
+    debt = db.query(models.Debt).filter(
+        models.Debt.id == debt_id,
+        models.Debt.user_id == user_id,
+    ).first()
     if not debt:
         raise HTTPException(status_code=404, detail="Debt not found")
     return debt
@@ -47,9 +52,18 @@ def _get_payments(db: Session, debt_id: str) -> list[models.DebtPayment]:
 
 
 @router.get("", response_model=list[schemas.DebtOut])
-def get_debts(db: Session = Depends(get_db)):
-    """PERF-01: Single bulk payment query instead of N+1 per-debt queries."""
-    debts = db.query(models.Debt).order_by(models.Debt.created_date.desc()).all()
+def get_debts(
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    """PERF-01: Single bulk payment query instead of N+1 per-debt queries.
+    AUTH-01: scoped to current_user.id."""
+    debts = (
+        db.query(models.Debt)
+        .filter(models.Debt.user_id == current_user.id)
+        .order_by(models.Debt.created_date.desc())
+        .all()
+    )
     if not debts:
         return []
 
@@ -68,8 +82,16 @@ def get_debts(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=schemas.DebtOut, status_code=status.HTTP_201_CREATED)
-def create_debt(payload: schemas.DebtCreate, db: Session = Depends(get_db)):
-    debt = models.Debt(id=str(uuid4()), **payload.model_dump())
+def create_debt(
+    payload: schemas.DebtCreate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    debt = models.Debt(
+        id=str(uuid4()),
+        user_id=current_user.id,
+        **payload.model_dump(),
+    )
     db.add(debt)
     db.commit()
     db.refresh(debt)
@@ -77,8 +99,13 @@ def create_debt(payload: schemas.DebtCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{debt_id}", response_model=schemas.DebtOut)
-def update_debt(debt_id: str, payload: schemas.DebtUpdate, db: Session = Depends(get_db)):
-    debt = _get_debt_or_404(db, debt_id)
+def update_debt(
+    debt_id: str,
+    payload: schemas.DebtUpdate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    debt = _get_debt_or_404(db, debt_id, current_user.id)
     for field, value in payload.model_dump().items():
         setattr(debt, field, value)
     db.commit()
@@ -87,16 +114,25 @@ def update_debt(debt_id: str, payload: schemas.DebtUpdate, db: Session = Depends
 
 
 @router.delete("/{debt_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_debt(debt_id: str, db: Session = Depends(get_db)):
-    debt = _get_debt_or_404(db, debt_id)
+def delete_debt(
+    debt_id: str,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    debt = _get_debt_or_404(db, debt_id, current_user.id)
     db.query(models.DebtPayment).filter(models.DebtPayment.debt_id == debt_id).delete()
     db.delete(debt)
     db.commit()
 
 
 @router.post("/{debt_id}/payments", response_model=schemas.DebtOut, status_code=status.HTTP_201_CREATED)
-def add_payment(debt_id: str, payload: schemas.DebtPaymentCreate, db: Session = Depends(get_db)):
-    debt = _get_debt_or_404(db, debt_id)
+def add_payment(
+    debt_id: str,
+    payload: schemas.DebtPaymentCreate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    debt = _get_debt_or_404(db, debt_id, current_user.id)
     payment = models.DebtPayment(id=str(uuid4()), debt_id=debt_id, **payload.model_dump())
     db.add(payment)
     db.commit()
@@ -104,8 +140,14 @@ def add_payment(debt_id: str, payload: schemas.DebtPaymentCreate, db: Session = 
 
 
 @router.patch("/{debt_id}/payments/{payment_id}", response_model=schemas.DebtOut)
-def update_payment(debt_id: str, payment_id: str, payload: schemas.DebtPaymentUpdate, db: Session = Depends(get_db)):
-    debt = _get_debt_or_404(db, debt_id)
+def update_payment(
+    debt_id: str,
+    payment_id: str,
+    payload: schemas.DebtPaymentUpdate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    debt = _get_debt_or_404(db, debt_id, current_user.id)
     payment = db.query(models.DebtPayment).filter(
         models.DebtPayment.id == payment_id,
         models.DebtPayment.debt_id == debt_id,
@@ -119,8 +161,13 @@ def update_payment(debt_id: str, payment_id: str, payload: schemas.DebtPaymentUp
 
 
 @router.delete("/{debt_id}/payments/{payment_id}", response_model=schemas.DebtOut)
-def delete_payment(debt_id: str, payment_id: str, db: Session = Depends(get_db)):
-    debt = _get_debt_or_404(db, debt_id)
+def delete_payment(
+    debt_id: str,
+    payment_id: str,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    debt = _get_debt_or_404(db, debt_id, current_user.id)
     payment = db.query(models.DebtPayment).filter(
         models.DebtPayment.id == payment_id,
         models.DebtPayment.debt_id == debt_id,

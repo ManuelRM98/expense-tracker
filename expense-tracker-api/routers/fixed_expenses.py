@@ -8,14 +8,16 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+from auth import AuthUser, get_current_user
 from database import get_db
 
 router = APIRouter(prefix="/fixed-expenses", tags=["Fixed Expenses"])
 
 
-def _get_or_404(db: Session, template_id: str) -> models.FixedExpenseTemplate:
+def _get_or_404(db: Session, template_id: str, user_id: str) -> models.FixedExpenseTemplate:
     t = db.query(models.FixedExpenseTemplate).filter(
-        models.FixedExpenseTemplate.id == template_id
+        models.FixedExpenseTemplate.id == template_id,
+        models.FixedExpenseTemplate.user_id == user_id,
     ).first()
     if not t:
         raise HTTPException(status_code=404, detail="Template not found")
@@ -25,16 +27,28 @@ def _get_or_404(db: Session, template_id: str) -> models.FixedExpenseTemplate:
 # ── Template CRUD ──────────────────────────────────────────────────────────────
 
 @router.get("", response_model=list[schemas.TemplateOut])
-def get_templates(db: Session = Depends(get_db)):
-    return db.query(models.FixedExpenseTemplate).all()
+def get_templates(
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    return (
+        db.query(models.FixedExpenseTemplate)
+        .filter(models.FixedExpenseTemplate.user_id == current_user.id)
+        .all()
+    )
 
 
 @router.post("", response_model=schemas.TemplateOut, status_code=status.HTTP_201_CREATED)
-def create_template(payload: schemas.TemplateCreate, db: Session = Depends(get_db)):
+def create_template(
+    payload: schemas.TemplateCreate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
     today = date.today()
     created_at = today.strftime("%Y-%m")   # "YYYY-MM" — prevents backfill before creation
     template = models.FixedExpenseTemplate(
         id=str(uuid4()),
+        user_id=current_user.id,
         is_active=True,
         created_at=created_at,
         **payload.model_dump(),
@@ -46,8 +60,13 @@ def create_template(payload: schemas.TemplateCreate, db: Session = Depends(get_d
 
 
 @router.put("/{template_id}", response_model=schemas.TemplateOut)
-def update_template(template_id: str, payload: schemas.TemplateUpdate, db: Session = Depends(get_db)):
-    template = _get_or_404(db, template_id)
+def update_template(
+    template_id: str,
+    payload: schemas.TemplateUpdate,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    template = _get_or_404(db, template_id, current_user.id)
     for field, value in payload.model_dump().items():
         setattr(template, field, value)
     db.commit()
@@ -56,16 +75,24 @@ def update_template(template_id: str, payload: schemas.TemplateUpdate, db: Sessi
 
 
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_template(template_id: str, db: Session = Depends(get_db)):
-    template = _get_or_404(db, template_id)
+def delete_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    template = _get_or_404(db, template_id, current_user.id)
     db.delete(template)
     db.commit()
 
 
 @router.patch("/{template_id}/toggle", response_model=schemas.TemplateOut)
-def toggle_template(template_id: str, db: Session = Depends(get_db)):
-    """Activates or deactivates a template. Mirrors toggleTemplate() from useFixedExpenses.js."""
-    template = _get_or_404(db, template_id)
+def toggle_template(
+    template_id: str,
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    """Activates or deactivates a template."""
+    template = _get_or_404(db, template_id, current_user.id)
     template.is_active = not template.is_active
     db.commit()
     db.refresh(template)
@@ -81,9 +108,11 @@ MONTH_KEY_PATTERN = r"^\d{4}-\d{2}$"
 def generate_for_month(
     month_key: str = Path(pattern=MONTH_KEY_PATTERN),  # SEC-04: reject malformed month keys
     db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
 ):
     """
     Server-side port of generateForMonth() from useFixedExpenses.js.
+    AUTH-01: only processes templates owned by current_user; stamps user_id on created expenses.
 
     Rules (identical to the frontend logic):
     - Future months are skipped entirely.
@@ -91,8 +120,7 @@ def generate_for_month(
     - Past months: always generates.
     - Respects template.created_at: no backfill before the template existed.
     - Checks the generation log to prevent duplicates.
-    - Clamps day_of_month to the real last day of the target month
-      (e.g. day=31 in February → Feb 28/29).
+    - Clamps day_of_month to the real last day of the target month.
     """
     today = date.today()
     current_month_key = today.strftime("%Y-%m")
@@ -103,9 +131,14 @@ def generate_for_month(
     year, month = map(int, month_key.split("-"))
     is_current_month = month_key == current_month_key
 
-    active_templates = db.query(models.FixedExpenseTemplate).filter(
-        models.FixedExpenseTemplate.is_active == True
-    ).all()
+    active_templates = (
+        db.query(models.FixedExpenseTemplate)
+        .filter(
+            models.FixedExpenseTemplate.user_id == current_user.id,
+            models.FixedExpenseTemplate.is_active == True,
+        )
+        .all()
+    )
 
     generated: list[models.Expense] = []
 
@@ -133,6 +166,7 @@ def generate_for_month(
 
         expense = models.Expense(
             id=str(uuid4()),
+            user_id=current_user.id,
             date=date(year, month, actual_day),
             desc=template.name,
             category=template.category,
@@ -143,12 +177,10 @@ def generate_for_month(
             cost_type="fixed",
         )
         db.add(expense)
-        db.add(models.FixedExpenseLog(log_key=log_key))
+        db.add(models.FixedExpenseLog(log_key=log_key, user_id=current_user.id))
         generated.append(expense)
 
     # STATE-02: Wrap commit in IntegrityError guard for race-safe idempotency.
-    # If two concurrent requests race to insert the same log_key, the second
-    # will get a unique-constraint violation — return empty list (already done).
     try:
         db.commit()
     except IntegrityError:
@@ -162,6 +194,15 @@ def generate_for_month(
 
 
 @router.get("/log", response_model=list[str])
-def get_generation_log(db: Session = Depends(get_db)):
-    """Returns all log keys — useful for debugging and auditing."""
-    return [row.log_key for row in db.query(models.FixedExpenseLog).all()]
+def get_generation_log(
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_user),
+):
+    """Returns log keys for the current user only — useful for debugging and auditing.
+    AUTH-01: filtered by user_id directly on fixed_expense_logs."""
+    return [
+        row.log_key
+        for row in db.query(models.FixedExpenseLog).filter(
+            models.FixedExpenseLog.user_id == current_user.id
+        ).all()
+    ]

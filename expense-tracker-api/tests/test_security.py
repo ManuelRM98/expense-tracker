@@ -1,10 +1,8 @@
 """
-SEC-02: API-key optional auth — required when API_KEY env var is set.
+AUTH-01: JWT bearer auth replaces the old X-API-Key middleware.
 SEC-04: month_key path params validated with ^\\d{4}-\\d{2}$ pattern.
 DEBT-06: billing_month must match YYYY-MM format or be None.
 """
-import os
-import pytest
 
 
 # ── SEC-04: month_key path validation ─────────────────────────────────────────
@@ -17,11 +15,7 @@ def test_budget_month_key_invalid_format_returns_422(client):
 
 def test_budget_month_key_default_string_rejected(client):
     """GET /budget/default path uses a dedicated route; /budget/{month_key} rejects 'default'."""
-    # 'default' does not match ^\d{4}-\d{2}$ so it should be 422
     res = client.get("/budget/default")
-    # FastAPI routes /budget/default to the dedicated endpoint — that is fine.
-    # The important thing is that the dynamic route does not expose the internal row.
-    # Either the dedicated route handles it (200) or the pattern rejects it (422).
     assert res.status_code in (200, 422)
 
 
@@ -82,46 +76,40 @@ def test_billing_month_none_accepted(client):
     assert res.json()["billing_month"] is None
 
 
-# ── SEC-02: API-key auth ────────────────────────────────────────────────────
+# ── AUTH-01: unauthenticated requests return 401 ────────────────────────────
+# The client fixture overrides get_current_user; these tests bypass that
+# override by using a raw TestClient without the override.
 
-def test_api_key_auth_disabled_by_default(client):
-    """Without API_KEY set, all requests pass without X-API-Key header."""
-    # API_KEY is not set in the test environment — should work fine
-    res = client.get("/expenses")
-    assert res.status_code == 200
-
-
-def test_api_key_required_when_set(client):
-    """When API_KEY is configured, requests without the header get 401."""
-    import main as m
-    original = m._API_KEY
-    m._API_KEY = "test-secret-key"
+def test_health_check_public():
+    """GET / must be accessible without auth."""
+    from fastapi.testclient import TestClient
+    from main import app
+    # Clear overrides to test real auth
+    overrides = app.dependency_overrides.copy()
+    app.dependency_overrides.clear()
     try:
-        res = client.get("/expenses")
+        with TestClient(app, raise_server_exceptions=False) as raw_client:
+            res = raw_client.get("/")
+        assert res.status_code == 200
+    finally:
+        app.dependency_overrides.update(overrides)
+
+
+def test_data_endpoint_without_token_returns_401():
+    """GET /expenses without Authorization header must return 401."""
+    from fastapi.testclient import TestClient
+    from main import app
+    overrides = app.dependency_overrides.copy()
+    app.dependency_overrides.clear()
+    try:
+        with TestClient(app, raise_server_exceptions=False) as raw_client:
+            res = raw_client.get("/expenses")
         assert res.status_code == 401
     finally:
-        m._API_KEY = original
+        app.dependency_overrides.update(overrides)
 
 
-def test_api_key_accepted_when_correct(client):
-    """Correct X-API-Key header should be accepted."""
-    import main as m
-    original = m._API_KEY
-    m._API_KEY = "test-secret-key"
-    try:
-        res = client.get("/expenses", headers={"X-API-Key": "test-secret-key"})
-        assert res.status_code == 200
-    finally:
-        m._API_KEY = original
-
-
-def test_api_key_health_check_excluded(client):
-    """Health check at / is accessible without API key even when auth is enabled."""
-    import main as m
-    original = m._API_KEY
-    m._API_KEY = "test-secret-key"
-    try:
-        res = client.get("/")
-        assert res.status_code == 200
-    finally:
-        m._API_KEY = original
+def test_api_key_auth_disabled_by_default(client):
+    """With JWT dependency overridden in tests, data endpoints return 200."""
+    res = client.get("/expenses")
+    assert res.status_code == 200
