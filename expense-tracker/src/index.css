@@ -119,8 +119,10 @@ body {
  */
 :root {
   --tab-bar-h: 56px;
-  /* FEAT-13: floating pill tab bar — gap between bar bottom and screen edge */
-  --tab-bar-gap: 12px;
+  /* FEAT-13: floating pill tab bar — gap between bar bottom and screen edge.
+     Sits above Safari's bottom toolbar without viewport-fit=cover (no safe-area
+     inset is applied, so this gap is the full clearance). */
+  --tab-bar-gap: 20px;
   /* Glassy top inner highlight (light theme: visible white sheen) */
   --tab-bar-highlight: rgba(255, 255, 255, 0.55);
   /* Floating drop shadow for the pill */
