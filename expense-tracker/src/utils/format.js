@@ -22,18 +22,19 @@ export function fmtCOP(n) {
 /**
  * Format a raw input string for display while typing. Keeps digits, groups the
  * integer part with "." and allows a single "," decimal separator capped at 2
- * places. A pasted "." decimal is accepted (the first separator wins).
- * Examples: "1000000" → "1.000.000", "1000000,5" → "1.000.000,5", "173.85" → "173,85"
+ * places. "." on input is always treated as a thousands separator (stripped);
+ * only "," opens a decimal part (es-CO convention).
+ * Examples: "1000000" → "1.000.000", "1000000,5" → "1.000.000,5", "173.85" → "17.385"
  */
 export function formatAmountInput(raw) {
   if (raw == null) return '';
-  let s = String(raw).replace(/[^\d.,]/g, '');
-  // Normalise the decimal separator to ",". The first "." or "," is the decimal
-  // point; any later separators are dropped.
-  const firstSep = s.search(/[.,]/);
-  let intPart = firstSep === -1 ? s : s.slice(0, firstSep);
-  let decPart = firstSep === -1 ? null : s.slice(firstSep + 1).replace(/[.,]/g, '');
-  intPart = intPart.replace(/\D/g, '');
+  // Strip "." (thousands separators on input) so re-feeding a grouped value
+  // like "3.600" never creates a false decimal. Keep only digits and ",".
+  let s = String(raw).replace(/\./g, '').replace(/[^\d,]/g, '');
+  // "," is the only decimal separator.
+  const commaIdx = s.indexOf(',');
+  let intPart = commaIdx === -1 ? s : s.slice(0, commaIdx);
+  let decPart = commaIdx === -1 ? null : s.slice(commaIdx + 1).replace(/,/g, '');
   const grouped = intPart === '' ? '' : Number(intPart).toLocaleString('es-CO');
   if (decPart == null) return grouped;
   decPart = decPart.slice(0, 2);
