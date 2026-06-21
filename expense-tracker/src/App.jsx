@@ -217,6 +217,9 @@ export default function App() {
             onSelectMonth={goToMonth}
             expenses={allExpenses}
             savings={allSavings}
+            debts={debtsHook.debts}
+            loadExpensesForMonth={appData.loadExpensesForMonth}
+            loadSavingsForMonth={appData.loadSavingsForMonth}
             onOpenSettings={() => navigate('/settings')}
             onOpenDebts={() => navigate('/debts')}
           />

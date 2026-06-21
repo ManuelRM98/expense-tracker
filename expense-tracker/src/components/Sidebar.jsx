@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MONTH_NAMES, MONTH_SHORT } from '../utils/format';
 import NavArrowButton from './NavArrowButton';
 
@@ -24,7 +24,7 @@ const SettingsIcon = () => (
   </svg>
 );
 
-export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMonth, expenses, savings, onOpenSettings, onOpenDebts }) {
+export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMonth, expenses, savings, debts = [], loadExpensesForMonth, loadSavingsForMonth, onOpenSettings, onOpenDebts }) {
   const yearsWithData = useMemo(() => {
     const years = new Set([CURRENT_YEAR]);
     expenses.forEach(e => years.add(parseInt(e.date.split('-')[0])));
@@ -38,18 +38,32 @@ export default function Sidebar({ view, viewYear, viewMonth, onHome, onSelectMon
   const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
   const [collapsed, setCollapsed] = useState(false);
 
+  // Eagerly load every month of the displayed year so the "has data" highlight
+  // reflects the database — not just months the user has navigated to. Without
+  // this, months with data the user hasn't visited (e.g. future months) stay
+  // dimmed. The hooks dedupe internally via refs, so revisits are cheap.
+  useEffect(() => {
+    if (!loadExpensesForMonth || !loadSavingsForMonth) return;
+    for (let m = 1; m <= 12; m++) {
+      const monthKey = `${selectedYear}-${String(m).padStart(2, '0')}`;
+      loadExpensesForMonth(monthKey);
+      loadSavingsForMonth(monthKey);
+    }
+  }, [selectedYear, loadExpensesForMonth, loadSavingsForMonth]);
+
   const activeMonths = useMemo(() => {
     const set = new Set();
-    expenses.forEach(e => {
-      const [y, m] = e.date.split('-');
+    const mark = (ym) => {
+      const [y, m] = ym.split('-');
       if (parseInt(y) === selectedYear) set.add(parseInt(m) - 1);
-    });
-    savings.forEach(sv => {
-      const [y, m] = sv.date.split('-');
-      if (parseInt(y) === selectedYear) set.add(parseInt(m) - 1);
-    });
+    };
+    // Expenses honour the card cut-off override: billingMonth ("YYYY-MM") wins
+    // over the raw date when present, matching the backend's monthly grouping.
+    expenses.forEach(e => mark(e.billingMonth || e.date));
+    savings.forEach(sv => mark(sv.date));
+    debts.forEach(d => mark(d.createdDate));
     return set;
-  }, [expenses, savings, selectedYear]);
+  }, [expenses, savings, debts, selectedYear]);
 
   return (
     <aside style={{ ...s.sidebar, width: collapsed ? 52 : 210 }}>
