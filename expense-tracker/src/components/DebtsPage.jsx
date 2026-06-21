@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { fmtCOP, fmtDate } from '../utils/format';
+import { fmtCOP, fmtDate, todayISO } from '../utils/format';
 import DebtModal from './DebtModal';
 import DebtPaymentModal from './DebtPaymentModal';
 import ConfirmDialog from './ConfirmDialog';
@@ -245,7 +245,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
       description: debt.description,
       amount:      debt.amount,
       isSettled:   nowSettled,
-      settledDate: nowSettled ? new Date().toISOString().slice(0, 10) : null,
+      settledDate: nowSettled ? todayISO() : null,
     });
   }
 
@@ -260,7 +260,7 @@ export default function DebtsPage({ debts, onAdd, onUpdate, onDelete, onAddPayme
         description: updated.description,
         amount:      updated.amount,
         isSettled:   true,
-        settledDate: new Date().toISOString().slice(0, 10),
+        settledDate: todayISO(),
       });
     }
   }

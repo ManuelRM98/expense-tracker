@@ -70,5 +70,11 @@ export function uid() {
 }
 
 export function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  // Build from local date parts — toISOString() returns UTC, which rolls over to
+  // "tomorrow" in the evening for UTC-5 (Colombia) timezones.
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
