@@ -19,6 +19,7 @@ import {
   CreditCardBreakdownChart,
   IncomeBreakdownChart,
 } from '../components/Charts';
+import { createExpenseWithDebts } from '../utils/expenseDebts';
 import * as sharedStyles from '../styles/shared';
 import NavArrowButton from '../components/NavArrowButton';
 import TabBtn from '../components/TabBtn';
@@ -137,27 +138,26 @@ export default function MonthView({
 
   async function handleSave({ debtEntries, ...data }) {
     try {
-      let expenseId;
       if (editing) {
+        // Editing never splits — just update the row and link any debts to it.
         await updateExpense(editing.id, data);
-        expenseId = editing.id;
         showToast('Expense updated.');
-      } else {
-        const created = await addExpense(data);
-        expenseId = created?.id;
-        showToast('Expense added.');
-      }
-      if (debtEntries?.length > 0 && expenseId) {
-        for (const entry of debtEntries) {
-          await addDebt({
-            direction:       entry.direction,
-            person:          entry.person,
-            description:     data.desc,
-            amount:          parseAmount(String(entry.amount)),
-            linkedExpenseId: expenseId,
-            createdDate:     data.date,
-          });
+        if (debtEntries?.length > 0) {
+          for (const entry of debtEntries) {
+            await addDebt({
+              direction:       entry.direction,
+              person:          entry.person,
+              description:     data.desc,
+              amount:          parseAmount(String(entry.amount)),
+              linkedExpenseId: editing.id,
+              createdDate:     data.date,
+            });
+          }
         }
+      } else {
+        // Adding: "they_owe_me" debts split the expense into per-person rows.
+        await createExpenseWithDebts({ data, debtEntries: debtEntries ?? [], addExpense, addDebt });
+        showToast('Expense added.');
       }
     } catch (err) {
       showToast(`Error: ${err.message ?? 'Could not save expense.'}`);

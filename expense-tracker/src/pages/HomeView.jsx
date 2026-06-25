@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { parseAmount } from '../utils/format';
+import { createExpenseWithDebts } from '../utils/expenseDebts';
 import AnnualDashboard from '../components/AnnualDashboard';
 import ExpenseModal from '../components/ExpenseModal';
 
@@ -62,23 +62,10 @@ export default function HomeView({
   // QUAL-01: async handler with try/catch + toast, matching MonthView's add branch.
   async function handleSave({ debtEntries, ...data }) {
     try {
-      const created = await addExpense(data);
-      const expenseId = created?.id;
+      // Adding from the annual view: "they_owe_me" debts split the expense into
+      // per-person rows (see createExpenseWithDebts), mirroring MonthView.
+      await createExpenseWithDebts({ data, debtEntries: debtEntries ?? [], addExpense, addDebt });
       showToast('Expense added.');
-      // Mirror MonthView's debt-linking logic exactly: create a debt entry for
-      // each debtEntry that was filled in by the user in ExpenseModal.
-      if (debtEntries?.length > 0 && expenseId) {
-        for (const entry of debtEntries) {
-          await addDebt({
-            direction:       entry.direction,
-            person:          entry.person,
-            description:     data.desc,
-            amount:          parseAmount(String(entry.amount)),
-            linkedExpenseId: expenseId,
-            createdDate:     data.date,
-          });
-        }
-      }
       setModalOpen(false);
     } catch (err) {
       showToast(`Error: ${err.message ?? 'Could not save expense.'}`);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { todayISO, MONTH_NAMES, formatAmountInput, parseAmount } from '../utils/format';
+import { todayISO, MONTH_NAMES, formatAmountInput, parseAmount, fmtCOP } from '../utils/format';
 import DatePicker from './DatePicker';
 import useIsMobile from '../hooks/useIsMobile';
 import { getModalOverlayStyle, getModalStyle } from '../utils/mobileModalStyles';
@@ -107,6 +107,10 @@ export default function ExpenseModal({
     if (!form.whoPaid.trim())  e.whoPaid  = 'Who Paid is required.';
     if (form.cardPay === 'Yes' && !form.cardType) e.cardType = 'Please select a card type.';
     if (!form.costType) e.costType = 'Please select a cost type.';
+    // "They owe me" debts carve out part of the price — they can't exceed it.
+    if (owedTotal > parseAmount(form.price)) {
+      e.debt = "Amounts others owe you can't exceed the price.";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -173,6 +177,12 @@ export default function ExpenseModal({
     onRemoveCategory(name);
     if (form.category === name) set('category', '');
   }
+
+  // Live split preview: how much of the price others owe you vs. your own share.
+  const owedTotal = debtEntries
+    .filter(d => d.direction === 'they_owe_me' && d.amount)
+    .reduce((sum, d) => sum + parseAmount(String(d.amount)), 0);
+  const myShare = parseAmount(form.price) - owedTotal;
 
   const isMobile = useIsMobile();
 
@@ -544,6 +554,29 @@ export default function ExpenseModal({
                 >
                   + Add person
                 </button>
+
+                {/* Split preview: "they owe me" debts carve out per-person rows. */}
+                {owedTotal > 0 && (
+                  myShare >= 0 ? (
+                    <div style={s.splitHint}>
+                      {(() => {
+                        const n = debtEntries.filter(d => d.direction === 'they_owe_me' && d.person.trim() && d.amount).length;
+                        const rowWord = n === 1 ? 'a row' : `${n} rows`;
+                        return (
+                          <>
+                            This expense will split into your share of <strong>{fmtCOP(myShare)}</strong>
+                            {' '}plus {rowWord} totalling <strong>{fmtCOP(owedTotal)}</strong> for who owes you — total {fmtCOP(parseAmount(form.price))}.
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <div style={s.errMsg}>
+                      Amounts others owe you exceed the price by {fmtCOP(-myShare)}.
+                    </div>
+                  )
+                )}
+                {errors.debt && <span style={s.errMsg}>{errors.debt}</span>}
               </div>
             )}
           </div>
@@ -663,6 +696,11 @@ const s = {
   },
   hint: {
     fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2,
+  },
+  splitHint: {
+    fontSize: 12, lineHeight: 1.45, fontWeight: 500,
+    color: 'var(--accent)', background: 'var(--accent-light)',
+    borderRadius: 'var(--radius-sm)', padding: '8px 10px', marginTop: 2,
   },
   debtSection: {
     marginTop: 20,
