@@ -8,6 +8,7 @@ Flow:
 
 Test seam: override `get_current_user` via `app.dependency_overrides` in tests.
 """
+import logging
 import os
 from dataclasses import dataclass
 
@@ -16,12 +17,18 @@ from jwt import PyJWKClient
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+logger = logging.getLogger(__name__)
+
 # ── Configuration (from env) ──────────────────────────────────────────────────
 
-_SUPABASE_URL = os.getenv(
-    "SUPABASE_URL",
-    "https://ontlhhrcfzjcmihtopnb.supabase.co",
-).rstrip("/")
+# Required — no hardcoded fallback (a real project ref must never be baked into
+# source). Copy .env.example to .env and set SUPABASE_URL. Fails fast if missing.
+_SUPABASE_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+if not _SUPABASE_URL:
+    raise RuntimeError(
+        "SUPABASE_URL is not set. Copy .env.example to .env and set your "
+        "Supabase project URL (see the AUTH-01 section)."
+    )
 
 _JWKS_URL = os.getenv(
     "SUPABASE_JWKS_URL",
@@ -92,11 +99,22 @@ def get_current_user(
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except (jwt.InvalidTokenError, Exception) as exc:
+    except jwt.InvalidTokenError as exc:
+        # SEC-01-2: log the specifics server-side, return a generic message so we
+        # don't hand token-fingerprinting detail to unauthenticated callers.
+        logger.warning("JWT validation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token: {exc}",
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception as exc:
+        # Infrastructure failure (e.g. JWKS endpoint unreachable) — distinct from a
+        # malformed token. Log it; surface a generic 503 without internal detail.
+        logger.error("Token verification error (infrastructure): %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Unable to verify token",
         )
 
     sub: str | None = payload.get("sub")

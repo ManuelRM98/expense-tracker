@@ -88,18 +88,31 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 # CORS — AUTH-01: added Authorization to allow_headers; removed X-API-Key.
-# allow_origin_regex permits localhost + private LAN addresses on any port.
+# SEC-01-4: by default allow_origin_regex permits localhost + private LAN
+# addresses on any port (intentional for the multi-device home setup). For a
+# public domain, set CORS_ALLOW_ORIGINS to a comma-separated explicit allow-list
+# (e.g. "https://tracker.example.com") to replace the broad LAN regex.
+# Auth is via bearer token (not cookies), so CORS is not the security boundary —
+# never pair this with allow_credentials=True.
+_cors_env = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+_cors_kwargs = (
+    {"allow_origins": [o.strip() for o in _cors_env.split(",") if o.strip()]}
+    if _cors_env
+    else {
+        "allow_origin_regex": (
+            r"^http://("
+            r"localhost|127\.0\.0\.1|"
+            r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+            r"192\.168\.\d{1,3}\.\d{1,3}|"
+            r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|"
+            r"[\w-]+\.local"
+            r")(:\d+)?$"
+        )
+    }
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=(
-        r"^http://("
-        r"localhost|127\.0\.0\.1|"
-        r"10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
-        r"192\.168\.\d{1,3}\.\d{1,3}|"
-        r"172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|"
-        r"[\w-]+\.local"
-        r")(:\d+)?$"
-    ),
+    **_cors_kwargs,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],  # AUTH-01: Bearer token header
 )

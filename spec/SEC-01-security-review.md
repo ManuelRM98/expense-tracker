@@ -41,12 +41,18 @@ the one worth acting on before any internet exposure; it is already acknowledged
 accepted trade-off for the private LAN in [AUTH-01](AUTH-01-multi-user-authentication.md)
 and [DEPLOY-01](DEPLOY-01-production-lan-docker.md).
 
-| ID        | Finding                                             | Severity | Confidence |
-|-----------|-----------------------------------------------------|----------|------------|
-| SEC-01-1  | Bearer access tokens sent over plaintext HTTP (LAN) | MEDIUM   | 9/10       |
-| SEC-01-2  | JWT-validation error echoes exception text to caller| LOW      | 8/10       |
-| SEC-01-3  | Session tokens persisted in `localStorage`          | LOW      | 8/10       |
-| SEC-01-4  | CORS allows any private-LAN / `*.local` origin      | LOW/Info | 8/10       |
+| ID        | Finding                                             | Severity | Confidence | Status |
+|-----------|-----------------------------------------------------|----------|------------|--------|
+| SEC-01-1  | Bearer access tokens sent over plaintext HTTP (LAN) | MEDIUM   | 9/10       | Open (accepted for LAN; TLS is the public-deploy gate) |
+| SEC-01-2  | JWT-validation error echoes exception text to caller| LOW      | 8/10       | **Fixed** — generic detail, logs server-side, infra errors → 503 (`auth.py`) |
+| SEC-01-3  | Session tokens persisted in `localStorage`          | LOW      | 8/10       | Open (defense-in-depth; no XSS sink present) |
+| SEC-01-4  | CORS allows any private-LAN / `*.local` origin      | LOW/Info | 8/10       | **Mitigated** — LAN regex kept as default; `CORS_ALLOW_ORIGINS` env for explicit public allow-list (`main.py`) |
+
+> **Also fixed (out-of-band, pre-public hardening):** the hardcoded Supabase
+> project-URL fallback in `auth.py` was removed — `SUPABASE_URL` is now required
+> from env (fail-fast) so no real project ref is baked into public source. And the
+> `expense_tracker.db` SQLite file (real personal financial data) was purged from
+> all git history before making the repository public.
 
 ---
 

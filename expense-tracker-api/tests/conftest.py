@@ -28,6 +28,7 @@ os.environ["API_KEY"] = ""
 
 # AUTH-01: point JWKS at a non-existent URL — tests override get_current_user
 # entirely via dependency_overrides so the JWKS endpoint is never called.
+os.environ["SUPABASE_URL"] = "https://test.supabase.co"
 os.environ["SUPABASE_JWKS_URL"] = "http://localhost:0/.well-known/jwks.json"
 
 import pytest
