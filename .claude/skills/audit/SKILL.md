@@ -1,6 +1,7 @@
 ---
-description: Run a periodic architecture re-audit via the software-architect-auditor agent and compare against the DONE-* baseline (AGENTIC_WORKFLOW.md §4.3). Use at milestones or when asked for a technical health check of the project.
+description: Run a periodic architecture re-audit via the software-architect-auditor agent and compare against the DONE-* baseline (AGENTIC_WORKFLOW.md §4.3). Use at milestones or when asked for a technical health check, technical debt review, or "how healthy is this codebase" style question. For a fast, narrow schema/mapper check only, prefer /contract-check instead.
 argument-hint: [optional focus area]
+allowed-tools: Read, Grep, Glob, Agent
 ---
 Run the periodic re-audit loop from AGENTIC_WORKFLOW.md §4.3.
 

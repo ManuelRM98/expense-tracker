@@ -1,5 +1,5 @@
 ---
-description: Verify the API contract is in sync between backend schemas and the frontend api.js mappers. Use after any change to schemas.py, models.py, or src/services/api.js, or when asked whether backend and frontend agree.
+description: Verify the API contract is in sync between backend schemas and the frontend api.js mappers. Use after any change to schemas.py, models.py, or src/services/api.js, or when asked whether backend and frontend agree. Prefer this over /audit for a quick, targeted schema/mapper check; use /audit instead for a full project health scan.
 allowed-tools: Read, Grep, Glob
 ---
 Check for drift between the backend API contract and the frontend mappers — the #1

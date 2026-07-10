@@ -1,6 +1,7 @@
 ---
-description: Fix a bug through the agentic pipeline (triage → failing test → fix → qa-review)
+description: Fix a bug through the agentic pipeline (triage → failing test → fix → qa-review). Use whenever the user reports something broken, behaving incorrectly, erroring, or not working as expected — even if they don't say "bug" or "fix" explicitly.
 argument-hint: <bug description>
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent, SendMessage
 ---
 Fix the following bug using the workflow in AGENTIC_WORKFLOW.md §4.2:
 

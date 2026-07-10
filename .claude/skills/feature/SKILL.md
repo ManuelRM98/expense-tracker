@@ -1,6 +1,7 @@
 ---
-description: Implement a feature through the agentic pipeline (spec → backend → frontend → qa-review)
+description: Implement a new feature that doesn't exist yet, through the agentic pipeline (spec → backend → frontend → qa-review). Use whenever the user asks to add, build, or implement new functionality — a button, page, field, filter, export, endpoint, etc. — even if they don't say "feature" explicitly.
 argument-hint: <feature description>
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent, SendMessage
 ---
 Implement the following feature using the project's agentic workflow
 (see AGENTIC_WORKFLOW.md §4.1):
