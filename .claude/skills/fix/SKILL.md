@@ -1,12 +1,14 @@
 ---
+name: fix
 description: Fix a bug through the agentic pipeline (triage → failing test → fix → qa-review). Use whenever the user reports something broken, behaving incorrectly, erroring, or not working as expected — even if they don't say "bug" or "fix" explicitly.
 argument-hint: <bug description>
 allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Agent, SendMessage
 ---
 Fix the following bug using the workflow in AGENTIC_WORKFLOW.md §4.2:
 
-1. **TRIAGE** — Reproduce it: which layer, which file. If it matches a `spec/` finding
-   ID (see spec/DONE-10-findings-summary.md), cite the ID.
+1. **TRIAGE** — Reproduce it: which layer, which file. If it matches a known `spec/`
+   finding ID (check the findings-summary doc in `spec/` if one currently exists),
+   cite the ID.
 2. **TEST FIRST** — Write a failing test that captures the bug (backend: pytest in
    `expense-tracker-api/tests/`; frontend logic without a test runner: written repro
    steps).

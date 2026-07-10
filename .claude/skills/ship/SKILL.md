@@ -1,5 +1,7 @@
 ---
+name: ship
 description: Verify and commit the current changes with explicit user approval. Use when the user asks to commit, ship, save, or finalize the pending work.
+allowed-tools: Read, Bash
 ---
 Run the project's gated commit ritual. The order is fixed; never skip ahead.
 
